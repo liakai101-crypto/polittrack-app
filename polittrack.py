@@ -4,8 +4,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 import networkx as nx
 from io import BytesIO
+import datetime
+import base64
 
-# ==================== 登入功能（簡單版） ====================
+# ==================== 登入功能 ====================
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
@@ -25,18 +27,20 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ==================== 從 CSV 讀取資料（用英文欄位） ====================
+# ==================== 讀取資料 ====================
 @st.cache_data
 def load_data():
     try:
-        # 用 utf-8-sig 處理 Windows 常見的 BOM 編碼問題
         df = pd.read_csv("polittrack_data.csv", encoding='utf-8-sig')
         return df
     except FileNotFoundError:
-        st.error("找不到 polittrack_data.csv 檔案，請放在桌面並重新執行。")
+        st.error("找不到 polittrack_data.csv")
         return pd.DataFrame()
 
 df = load_data()
+
+# 最後更新時間（模擬檔案修改時間）
+last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
 # 選區地圖資料（模擬）
 map_data = pd.DataFrame({
@@ -46,32 +50,59 @@ map_data = pd.DataFrame({
     'lon': [121.5654, 121.4589, 120.9600, 120.6736, 120.3133]
 })
 
-st.title('Taiwan PoliTrack - 台灣政治透明平台（完整版）')
+st.title('Taiwan PoliTrack - 台灣政治透明平台')
 
 # 登出按鈕
 if st.sidebar.button("登出"):
     st.session_state.logged_in = False
     st.rerun()
 
-# 進階搜尋條件（用英文欄位）
-st.sidebar.header("進階搜尋")
+# 顯示最後更新時間
+st.sidebar.info(f"資料最後更新：{last_update}")
+
+# ==================== 進階搜尋與篩選 ====================
+st.sidebar.header("進階搜尋與篩選")
+
 search_name = st.sidebar.text_input("姓名包含")
 search_party = st.sidebar.selectbox("黨籍", ["全部"] + list(df['party'].unique()) if 'party' in df else ["全部"])
+search_donor_type = st.sidebar.selectbox("捐款來源類型", ["全部", "企業", "個人", "團體"])
+search_year = st.sidebar.slider("捐款年份範圍", int(df['donation_year'].min()) if 'donation_year' in df else 2020, 
+                                int(df['donation_year'].max()) if 'donation_year' in df else 2025, (2020, 2025))
 search_donation_min = st.sidebar.number_input("捐款總額最低", value=0)
 search_donation_max = st.sidebar.number_input("捐款總額最高", value=1000000000)
 search_area = st.sidebar.selectbox("選區", ["全部"] + list(df['district'].unique()) if 'district' in df else ["全部"])
 
+sort_by = st.sidebar.selectbox("排序方式", ["無排序", "捐款金額降序", "財產增長率降序", "提案數降序"])
+
+# 重置篩選按鈕
+if st.sidebar.button("重置篩選"):
+    st.rerun()
+
 # 過濾資料
 filtered_df = df.copy()
 if search_name:
-    filtered_df = filtered_df[filtered_df['name'].str.contains(search_name)]
+    filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
 if search_party != "全部":
     filtered_df = filtered_df[filtered_df['party'] == search_party]
+if search_donor_type != "全部":
+    filtered_df = filtered_df[filtered_df['donor_type'] == search_donor_type]
+if 'donation_year' in filtered_df:
+    filtered_df = filtered_df[(filtered_df['donation_year'] >= search_year[0]) & (filtered_df['donation_year'] <= search_year[1])]
 filtered_df = filtered_df[(filtered_df['donation_total'] >= search_donation_min) & (filtered_df['donation_total'] <= search_donation_max)]
 if search_area != "全部":
     filtered_df = filtered_df[filtered_df['district'] == search_area]
 
-# 主內容 - 用 tabs 分頁
+# 排序
+if sort_by == "捐款金額降序":
+    filtered_df = filtered_df.sort_values('donation_total', ascending=False)
+elif sort_by == "財產增長率降序":
+    filtered_df['growth_rate'] = (filtered_df['assets_2025'] - filtered_df['assets_2024']) / filtered_df['assets_2024'] * 100
+    filtered_df = filtered_df.sort_values('growth_rate', ascending=False)
+elif sort_by == "提案數降序":
+    filtered_df['proposal_count'] = filtered_df['legislation_record'].str.extract('(\d+)').astype(float)
+    filtered_df = filtered_df.sort_values('proposal_count', ascending=False)
+
+# ==================== 主頁面內容 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "關聯分析與地圖", "完整資料庫"])
 
 with tab1:
@@ -86,6 +117,21 @@ with tab1:
     st.subheader('捐款總額排行')
     fig_bar = px.bar(filtered_df.sort_values('donation_total', ascending=False), x='name', y='donation_total')
     st.plotly_chart(fig_bar)
+
+    st.subheader('捐款來源比例')
+    donor_type_counts = filtered_df['donor_type'].value_counts()
+    fig_pie = px.pie(donor_type_counts, values=donor_type_counts.values, names=donor_type_counts.index, title='捐款來源比例')
+    st.plotly_chart(fig_pie)
+
+    st.subheader('黨派捐款比較')
+    party_sum = filtered_df.groupby('party')['donation_total'].sum().reset_index()
+    fig_party = px.bar(party_sum, x='party', y='donation_total', title='各黨派總捐款金額')
+    st.plotly_chart(fig_party)
+
+    st.subheader('捐款年份變化')
+    year_sum = filtered_df.groupby('donation_year')['donation_total'].sum().reset_index()
+    fig_time = px.line(year_sum, x='donation_year', y='donation_total', title='年度捐款總額變化')
+    st.plotly_chart(fig_time)
 
 with tab2:
     st.header('大額捐款者排行榜')
@@ -141,8 +187,27 @@ with tab4:
     st.header('完整資料庫')
     st.dataframe(df)
 
-    if st.button('下載 CSV'):
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button("下載", csv, "polittrack_data.csv", "text/csv")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button('下載完整 CSV'):
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("下載 CSV", csv, "polittrack_data.csv", "text/csv")
+
+    with col2:
+        selected_name = st.selectbox("選擇候選人匯出報告", df['name'].unique())
+        if st.button('匯出 PDF 報告'):
+            selected = df[df['name'] == selected_name].iloc[0]
+            st.write("生成 PDF 中...")
+
+            pdf_content = f"""
+            Taiwan PoliTrack 報告
+            姓名: {selected['name']}
+            黨籍: {selected['party']}
+            捐款總額: {selected['donation_total']}
+            財產 (2025): {selected['assets_2025']}
+            立法紀錄: {selected['legislation_record']}
+            """
+            b64 = base64.b64encode(pdf_content.encode()).decode()
+            st.markdown(f'<a href="data:application/pdf;base64,{b64}" download="report_{selected_name}.pdf">下載 PDF</a>', unsafe_allow_html=True)
 
 st.sidebar.info("資料從 polittrack_data.csv 讀取，用 Excel 更新後重新執行程式即可生效。")
