@@ -6,6 +6,31 @@ import networkx as nx
 from io import BytesIO
 import datetime
 import base64
+# 美化介面：藍綠色主題
+st.markdown("""
+<style>
+    .stApp {
+        background-color: #f0f8ff;  /* 淺藍背景，像天空透明 */
+    }
+    .css-1d391kg {  /* 側邊欄 */
+        background-color: #e0f7fa;  /* 淺藍綠側邊欄 */
+    }
+    h1, h2, h3, h4 {
+        color: #00695c;  /* 深綠標題 */
+    }
+    .stButton > button {
+        background-color: #26a69a;  /* 按鈕藍綠色 */
+        color: white;
+        border: none;
+    }
+    .stButton > button:hover {
+        background-color: #00897b;  /* 滑鼠移上去更深 */
+    }
+    .stSidebar .sidebar-content {
+        background-color: #e0f7fa;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ==================== 登入功能 ====================
 if 'logged_in' not in st.session_state:
@@ -51,6 +76,17 @@ map_data = pd.DataFrame({
 })
 
 st.title('Taiwan PoliTrack - 台灣政治透明平台')
+# 加 logo（台灣國旗或資料圖示）
+st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_Republic_of_China.svg/320px-Flag_of_the_Republic_of_China.svg.png", width=80)
+st.markdown("### 台灣政治透明平台 PoliTrack")
+st.markdown("""
+**平台中立聲明**  
+Taiwan PoliTrack 僅呈現政府公開資料（如監察院政治獻金、財產申報、立法院開放資料等），  
+不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
+所有資料皆標註來源，使用者可自行驗證。  
+若發現錯誤，請聯絡我們（未來加回報表單）。  
+本平台目標：促進公民資訊透明與參與。
+""")
 
 # 登出按鈕
 if st.sidebar.button("登出"):
