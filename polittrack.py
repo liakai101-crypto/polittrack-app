@@ -6,7 +6,39 @@ import networkx as nx
 from io import BytesIO
 import datetime
 import base64
-from fpdf import FPDF  # 新增：用來生成真 PDF
+from fpdf import FPDF  # 用來生成真正的 PDF
+
+# ==================== 美化介面：藍綠色主題 ====================
+st.markdown("""
+<style>
+    .stApp { background-color: #f0f8ff; }
+    .css-1d391kg { background-color: #e0f7fa; }
+    h1, h2, h3 { color: #00695c; }
+    .stButton > button { background-color: #26a69a; color: white; border: none; }
+    .stButton > button:hover { background-color: #00897b; }
+    .stSidebar .sidebar-content { background-color: #e0f7fa; }
+</style>
+""", unsafe_allow_html=True)
+
+# 加 logo（台灣國旗示意）
+st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_Republic_of_China.svg/320px-Flag_of_the_Republic_of_China.svg.png", width=80)
+
+st.title('Taiwan PoliTrack - 台灣政治透明平台')
+
+# 加中立說明文字 + 資料來源連結按鈕
+st.markdown("""
+**平台中立聲明**  
+本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
+所有資料來源自監察院、立法院等官方公開平台，使用者可自行驗證。  
+如有錯誤，請聯絡我們（未來加回報表單）。  
+本平台目標：促進公民資訊透明與參與。
+""")
+
+col_link1, col_link2 = st.columns(2)
+with col_link1:
+    st.markdown("[監察院政治獻金公開平台](https://ardata.cy.gov.tw)")
+with col_link2:
+    st.markdown("[立法院開放資料平台](https://data.ly.gov.tw)")
 
 # ==================== 登入功能 ====================
 if 'logged_in' not in st.session_state:
@@ -28,39 +60,6 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ==================== 美化介面：藍綠色主題 + 說明文字 ====================
-st.markdown("""
-<style>
-    .stApp { background-color: #f0f8ff; }
-    .css-1d391kg { background-color: #e0f7fa; }
-    h1, h2, h3 { color: #00695c; }
-    .stButton > button { background-color: #26a69a; color: white; border: none; }
-    .stButton > button:hover { background-color: #00897b; }
-    .stSidebar .sidebar-content { background-color: #e0f7fa; }
-</style>
-""", unsafe_allow_html=True)
-
-# 加 logo（台灣國旗示意，可換成你喜歡的）
-st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_Republic_of_China.svg/320px-Flag_of_the_Republic_of_China.svg.png", width=80)
-
-st.title('Taiwan PoliTrack - 台灣政治透明平台')
-
-# 加中立說明文字 + 資料來源連結按鈕
-st.markdown("""
-**平台中立聲明**  
-本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
-所有資料來源自監察院、立法院等官方公開平台，使用者可自行驗證。  
-如有錯誤，請聯絡我們（未來加回報表單）。  
-本平台目標：促進公民資訊透明與參與。
-""")
-
-# 加資料來源連結按鈕
-col_link1, col_link2 = st.columns(2)
-with col_link1:
-    st.markdown("[監察院政治獻金公開平台](https://ardata.cy.gov.tw)")
-with col_link2:
-    st.markdown("[立法院開放資料平台](https://data.ly.gov.tw)")
-
 # ==================== 讀取資料 + 最後更新時間 ====================
 @st.cache_data
 def load_data():
@@ -73,7 +72,6 @@ def load_data():
 
 df = load_data()
 
-# 最後更新時間（用現在時間模擬，未來可改讀檔案修改時間）
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.info(f"資料最後更新：{last_update}")
 
@@ -94,53 +92,164 @@ sort_by = st.sidebar.selectbox("排序方式", ["無排序", "捐款金額降序
 if st.sidebar.button("重置篩選"):
     st.rerun()
 
-# 過濾資料（略，同前）
+# ==================== 先過濾資料（重要：要在加警示之前） ====================
+filtered_df = df.copy()
+if search_name:
+    filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
+if search_party != "全部":
+    filtered_df = filtered_df[filtered_df['party'] == search_party]
+if search_donor_type != "全部":
+    filtered_df = filtered_df[filtered_df['donor_type'] == search_donor_type]
+if 'donation_year' in filtered_df:
+    filtered_df = filtered_df[(filtered_df['donation_year'] >= search_year[0]) & (filtered_df['donation_year'] <= search_year[1])]
+filtered_df = filtered_df[(filtered_df['donation_total'] >= search_donation_min) & (filtered_df['donation_total'] <= search_donation_max)]
+if search_area != "全部":
+    filtered_df = filtered_df[filtered_df['district'] == search_area]
 
-# ==================== 捐款異常警示（新功能） ====================
+# 排序
+if sort_by == "捐款金額降序":
+    filtered_df = filtered_df.sort_values('donation_total', ascending=False)
+elif sort_by == "財產增長率降序":
+    filtered_df['growth_rate'] = (filtered_df['assets_2025'] - filtered_df['assets_2024']) / filtered_df['assets_2024'] * 100
+    filtered_df = filtered_df.sort_values('growth_rate', ascending=False)
+elif sort_by == "提案數降序":
+    filtered_df['proposal_count'] = filtered_df['legislation_record'].str.extract('(\d+)').astype(float)
+    filtered_df = filtered_df.sort_values('proposal_count', ascending=False)
+
+# ==================== 加捐款異常警示（在過濾之後） ====================
 def add_warning(row):
-    if row['donation_amount'] > 10000000 and '企業' in row['top_donor'] and '法案' in row['association']:
+    if row.get('donation_amount', 0) > 10000000 and '企業' in str(row.get('top_donor', '')) and '法案' in str(row.get('association', '')):
         return "⚠️ 異常捐款警示：金額高且議題高度相關"
     return ""
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 主頁面內容（略，同前，但表格顯示 warning 欄） ====================
-# ...（保持原來的 tab1~tab4 內容，但 tab1 的 st.dataframe 加 column_config 顯示 warning 紅色）
+# ==================== 選區地圖資料（模擬） ====================
+map_data = pd.DataFrame({
+    'district': ['台北市', '新北市', '全國', '台中市', '高雄市'],
+    'donation_total': [300000000, 250000000, 500000000, 150000000, 120000000],
+    'lat': [25.0330, 25.0120, 23.6978, 24.1477, 22.6273],
+    'lon': [121.5654, 121.4589, 120.9600, 120.6736, 120.3133]
+})
+
+# ==================== 主內容分頁 ====================
+tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "關聯分析與地圖", "完整資料庫"])
+
 with tab1:
-    st.dataframe(
-        filtered_df,
-        column_config={
-            "warning": st.column_config.TextColumn("警示", width="medium")
-        }
-    )
+    st.header('查詢結果')
+    st.write(f"找到 {len(filtered_df)} 筆資料")
+    st.dataframe(filtered_df)
 
-# ==================== 真 PDF 匯出（使用 fpdf2） ====================
-with col2:
-    selected_name = st.selectbox("選擇候選人匯出報告", df['name'].unique())
-    if st.button('匯出 PDF 報告'):
-        selected = df[df['name'] == selected_name].iloc[0]
+    st.subheader('財產趨勢圖')
+    fig_trend = px.line(filtered_df, x='name', y=['assets_2024', 'assets_2025'], title='財產變化')
+    st.plotly_chart(fig_trend)
 
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", 'B', 16)
-        pdf.cell(0, 10, "Taiwan PoliTrack 個人報告", ln=1, align='C')
-        pdf.ln(10)
+    st.subheader('捐款總額排行')
+    fig_bar = px.bar(filtered_df.sort_values('donation_total', ascending=False), x='name', y='donation_total')
+    st.plotly_chart(fig_bar)
 
-        pdf.set_font("Arial", size=12)
-        pdf.cell(0, 10, f"姓名: {selected['name']}", ln=1)
-        pdf.cell(0, 10, f"黨籍: {selected['party']}", ln=1)
-        pdf.cell(0, 10, f"捐款總額: {selected['donation_total']:,} 元", ln=1)
-        pdf.cell(0, 10, f"財產 (2025): {selected['assets_2025']:,} 元", ln=1)
-        pdf.cell(0, 10, f"立法紀錄: {selected['legislation_record']}", ln=1)
-        pdf.cell(0, 10, f"警示: {selected['warning'] or '無異常'}", ln=1)
+    st.subheader('捐款來源比例')
+    donor_type_counts = filtered_df['donor_type'].value_counts()
+    fig_pie = px.pie(donor_type_counts, values=donor_type_counts.values, names=donor_type_counts.index)
+    st.plotly_chart(fig_pie)
 
-        pdf_output = BytesIO()
-        pdf.output(pdf_output)
-        pdf_output.seek(0)
+    st.subheader('黨派捐款比較')
+    party_sum = filtered_df.groupby('party')['donation_total'].sum().reset_index()
+    fig_party = px.bar(party_sum, x='party', y='donation_total')
+    st.plotly_chart(fig_party)
 
-        st.download_button(
-            label="下載標準 PDF 報告",
-            data=pdf_output,
-            file_name=f"report_{selected_name}.pdf",
-            mime="application/pdf"
-        )
+    st.subheader('捐款年份變化')
+    year_sum = filtered_df.groupby('donation_year')['donation_total'].sum().reset_index()
+    fig_time = px.line(year_sum, x='donation_year', y='donation_total')
+    st.plotly_chart(fig_time)
+
+with tab2:
+    st.header('大額捐款者排行榜')
+    top_donors = filtered_df.sort_values('donation_amount', ascending=False).head(15)
+    st.dataframe(top_donors[['name', 'top_donor', 'donation_amount']])
+    fig_rank = px.bar(top_donors, x='top_donor', y='donation_amount', color='name')
+    st.plotly_chart(fig_rank)
+
+with tab3:
+    st.header('關聯分析')
+    G = nx.Graph()
+    for idx, row in filtered_df.iterrows():
+        G.add_edge(row['name'], row['association'], weight=row['donation_amount']/1000000)
+
+    pos = nx.spring_layout(G, seed=42)
+    edge_x, edge_y = [], []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(x=edge_x, y=edge_y, line=dict(width=2, color='#888'), hoverinfo='none', mode='lines')
+
+    node_x, node_y, node_text, node_size, node_color = [], [], [], [], []
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        node_text.append(node)
+        degree = G.degree(node)
+        node_size.append(degree * 20 + 20)
+        node_color.append('blue' if '企業' in node else 'green')
+
+    node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', hoverinfo='text', text=node_text,
+                            marker=dict(showscale=False, color=node_color, size=node_size, line_width=2))
+
+    fig_net = go.Figure(data=[edge_trace, node_trace],
+                        layout=go.Layout(showlegend=False, hovermode='closest', margin=dict(b=20,l=5,r=5,t=40),
+                                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)))
+    st.plotly_chart(fig_net)
+
+    st.subheader('選區金流地圖')
+    fig_map = px.scatter_geo(map_data, lat='lat', lon='lon', size='donation_total',
+                             hover_name='district', color='donation_total',
+                             projection="natural earth")
+    fig_map.update_geos(fitbounds="locations", center=dict(lat=23.6978, lon=120.9600), projection_scale=20)
+    st.plotly_chart(fig_map)
+
+with tab4:
+    st.header('完整資料庫')
+    st.dataframe(df)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button('下載完整 CSV'):
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("下載 CSV", csv, "polittrack_data.csv", "text/csv")
+
+    with col2:
+        selected_name = st.selectbox("選擇候選人匯出報告", df['name'].unique())
+        if st.button('匯出 PDF 報告'):
+            selected = df[df['name'] == selected_name].iloc[0]
+
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", 'B', 16)
+            pdf.cell(0, 10, "Taiwan PoliTrack 個人報告", ln=1, align='C')
+            pdf.ln(10)
+
+            pdf.set_font("Arial", size=12)
+            pdf.cell(0, 10, f"姓名: {selected['name']}", ln=1)
+            pdf.cell(0, 10, f"黨籍: {selected['party']}", ln=1)
+            pdf.cell(0, 10, f"捐款總額: {selected['donation_total']:,} 元", ln=1)
+            pdf.cell(0, 10, f"財產 (2025): {selected['assets_2025']:,} 元", ln=1)
+            pdf.cell(0, 10, f"立法紀錄: {selected['legislation_record']}", ln=1)
+            pdf.cell(0, 10, f"警示: {selected.get('warning', '無異常')}", ln=1)
+
+            pdf_output = BytesIO()
+            pdf.output(pdf_output)
+            pdf_output.seek(0)
+
+            st.download_button(
+                label="下載標準 PDF 報告",
+                data=pdf_output,
+                file_name=f"report_{selected_name}.pdf",
+                mime="application/pdf"
+            )
+
+st.sidebar.info("資料從 polittrack_data.csv 讀取，用 Excel 更新後重新執行程式即可生效。")
