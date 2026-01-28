@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 import networkx as nx
 from io import BytesIO
 import datetime
-import base64
 from fpdf import FPDF  # 用來生成真正的 PDF
 
 # ==================== 美化介面：藍綠色主題 ====================
@@ -92,7 +91,7 @@ sort_by = st.sidebar.selectbox("排序方式", ["無排序", "捐款金額降序
 if st.sidebar.button("重置篩選"):
     st.rerun()
 
-# ==================== 先過濾資料（重要：要在加警示之前） ====================
+# ==================== 先過濾資料 ====================
 filtered_df = df.copy()
 if search_name:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
@@ -116,7 +115,7 @@ elif sort_by == "提案數降序":
     filtered_df['proposal_count'] = filtered_df['legislation_record'].str.extract('(\d+)').astype(float)
     filtered_df = filtered_df.sort_values('proposal_count', ascending=False)
 
-# ==================== 加捐款異常警示（在過濾之後） ====================
+# ==================== 加捐款異常警示 ====================
 def add_warning(row):
     if row.get('donation_amount', 0) > 10000000 and '企業' in str(row.get('top_donor', '')) and '法案' in str(row.get('association', '')):
         return "⚠️ 異常捐款警示：金額高且議題高度相關"
@@ -219,7 +218,7 @@ with tab4:
     col1, col2 = st.columns(2)
     with col1:
         if st.button('下載完整 CSV'):
-            csv = df.to_csv(index=False).encode('utf-8')
+            csv = df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8')
             st.download_button("下載 CSV", csv, "polittrack_data.csv", "text/csv")
 
     with col2:
