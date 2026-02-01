@@ -127,7 +127,7 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 強化選區金流地圖（只顯示台灣領土 + 高精準海岸線） ====================
+# ==================== 選區金流地圖資料 ====================
 map_data = pd.DataFrame({
     'district': ['台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '台東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
     'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
@@ -175,11 +175,10 @@ with tab2:
     st.plotly_chart(fig_rank)
 
 with tab3:
-    st.header('選區金流地圖（僅台灣領土 + 高精準海岸線）')
+    st.header('選區金流地圖（僅台灣領土）')
     
-    # 先顯示 debug 資訊，確認資料是否正常
+    # 確認資料筆數（保留 debug 筆數，刪除範例表格）
     st.write("地圖資料筆數：", len(map_data))
-    st.write("範例資料：", map_data.head(3))
 
     fig_map = px.scatter_geo(
         map_data,
@@ -196,23 +195,22 @@ with tab3:
     )
 
     fig_map.update_geos(
-        visible=False,                      # 完全隱藏預設世界地圖
+        visible=False,                      # 隱藏所有預設邊界
         showland=True,
-        landcolor="#e8f4f8",               # 陸地淺色
-        showcountries=False,                # 不顯示國家邊界
-        showsubunits=False,                 # 不顯示省界
+        landcolor="#e8f4f8",               # 陸地淺藍綠色
+        showcountries=False,
+        showsubunits=False,
         showlakes=False,
         showrivers=False,
-        projection_scale=150,               # 超大放大，強制只顯示台灣
-        lonaxis_range=[118.0, 123.0],       # 經度鎖定：東經118°~123°（金門到東部）
-        lataxis_range=[21.8, 25.4]          # 緯度鎖定：北緯21.8°~25.4°（屏東到基隆）
+        projection_scale=120,               # 放大聚焦台灣
+        lonaxis_range=[118, 123],           # 經度限制（金門到東部）
+        lataxis_range=[21.8, 25.4]          # 緯度限制（屏東到基隆）
     )
 
     fig_map.update_layout(
         margin=dict(l=0, r=0, t=30, b=0),
-        geo=dict(bgcolor='rgba(240,248,255,0.8)'),  # 背景與整體配色一致
-        height=600,
-        title="台灣選區捐款熱圖（僅顯示台灣領土）"
+        geo=dict(bgcolor='rgba(240,248,255,0.8)'),
+        height=600
     )
 
     st.plotly_chart(fig_map, use_container_width=True)
