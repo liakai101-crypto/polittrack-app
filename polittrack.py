@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import json
 from io import BytesIO
 import datetime
 from fpdf import FPDF
@@ -129,7 +130,7 @@ filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
 # ==================== 選區金流地圖資料 ====================
 map_data = pd.DataFrame({
-    'district': ['台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '台東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
+    'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
     'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
     'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
     'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
@@ -177,41 +178,40 @@ with tab2:
 with tab3:
     st.header('選區金流地圖（僅台灣領土）')
     
-    # 確認資料筆數（保留 debug 筆數，刪除範例表格）
     st.write("地圖資料筆數：", len(map_data))
 
-    fig_map = px.scatter_geo(
+    # 讀取你上傳的 GeoJSON 檔案
+    try:
+        with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
+            taiwan_geojson = json.load(f)
+        st.write("GeoJSON 載入成功！開始繪製地圖...")
+    except FileNotFoundError:
+        st.error("找不到 taiwan_counties.geojson，請確認已上傳到 repo 根目錄")
+        st.stop()
+
+    fig_map = px.choropleth_mapbox(
         map_data,
-        lat='lat',
-        lon='lon',
-        size='donation_total',
+        geojson=taiwan_geojson,
+        locations='district',
+        featureidkey='properties.COUNTYNAME',
         color='donation_total',
+        color_continuous_scale='Blues',
+        range_color=(map_data['donation_total'].min(), map_data['donation_total'].max()),
         hover_name='district',
         hover_data=['main_party', 'donation_total'],
-        color_continuous_scale='Blues',
-        size_max=50,
-        projection="mercator",
-        center=dict(lat=23.6978, lon=120.9600)
-    )
-
-    fig_map.update_geos(
-        visible=False,                      # 隱藏所有預設邊界
-        showland=True,
-        landcolor="#e8f4f8",               # 陸地淺藍綠色
-        showcountries=False,
-        showsubunits=False,
-        showlakes=False,
-        showrivers=False,
-        projection_scale=120,               # 放大聚焦台灣
-        lonaxis_range=[118, 123],           # 經度限制（金門到東部）
-        lataxis_range=[21.8, 25.4]          # 緯度限制（屏東到基隆）
+        zoom=6,
+        center={"lat": 23.6978, "lon": 120.9600},
+        opacity=0.7,
+        mapbox_style="white-bg"
     )
 
     fig_map.update_layout(
-        margin=dict(l=0, r=0, t=30, b=0),
-        geo=dict(bgcolor='rgba(240,248,255,0.8)'),
-        height=600
+        margin={"r":0,"t":0,"l":0,"b":0},
+        height=600,
+        title="台灣選區捐款熱圖（僅顯示台灣領土）"
     )
+
+    fig_map.update_traces(marker_line_width=0.5)
 
     st.plotly_chart(fig_map, use_container_width=True)
 
