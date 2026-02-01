@@ -5,7 +5,13 @@ from io import BytesIO
 import datetime
 from fpdf import FPDF
 
-# ==================== 美化介面 ====================
+# ==================== 頁面設定與美化 ====================
+st.set_page_config(
+    page_title="Taiwan PoliTrack - 政治透明平台",
+    page_icon="https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_Republic_of_China.svg/32px-Flag_of_the_Republic_of_China.svg.png",
+    layout="wide"
+)
+
 st.markdown("""
 <style>
     .stApp { background-color: #f0f8ff; }
@@ -22,7 +28,7 @@ st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_
 
 st.title('Taiwan PoliTrack - 台灣政治透明平台')
 
-# 加中立說明文字 + 資料來源連結按鈕
+# 加中立聲明 + 資料來源連結
 st.markdown("""
 **平台中立聲明**  
 本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
@@ -31,10 +37,10 @@ st.markdown("""
 本平台目標：促進公民資訊透明與參與。
 """)
 
-col_link1, col_link2 = st.columns(2)
-with col_link1:
+col1, col2 = st.columns(2)
+with col1:
     st.markdown("[監察院政治獻金公開平台](https://ardata.cy.gov.tw)")
-with col_link2:
+with col2:
     st.markdown("[立法院開放資料平台](https://data.ly.gov.tw)")
 
 # ==================== 登入功能 ====================
@@ -72,7 +78,7 @@ df = load_data()
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.info(f"資料最後更新：{last_update}")
 
-# ==================== 進階搜尋 ====================
+# ==================== 進階搜尋與篩選 ====================
 st.sidebar.header("進階搜尋與篩選")
 
 search_name = st.sidebar.text_input("姓名包含")
@@ -180,18 +186,17 @@ with tab3:
         hover_data=['main_party', 'donation_total'],
         color_continuous_scale='Blues',
         size_max=50,
-        projection="natural earth",
-        scope="asia",
+        projection="mercator",
         center=dict(lat=23.6978, lon=120.9600)
     )
 
     fig_map.update_geos(
-        showcountries=True,
-        showcoastlines=True,
+        visible=False,
         showland=True,
         landcolor="lightgray",
-        projection_scale=30,
-        fitbounds="locations"
+        showcountries=False,
+        fitbounds="locations",
+        projection_scale=80
     )
 
     st.plotly_chart(fig_map, use_container_width=True)
