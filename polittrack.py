@@ -121,8 +121,17 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
+# ==================== 強化選區金流地圖 ====================
+map_data = pd.DataFrame({
+    'district': ['台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '台東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
+    'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
+    'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
+    'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
+    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
+})
+
 # ==================== 主內容分頁 ====================
-tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "關聯分析與地圖", "完整資料庫"])
+tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
 
 with tab1:
     st.header('查詢結果')
@@ -160,13 +169,32 @@ with tab2:
     st.plotly_chart(fig_rank)
 
 with tab3:
-    # 強化選區金流地圖
-    st.subheader('選區金流地圖（強化版）')
-    fig_map = px.scatter_geo(map_data, lat='lat', lon='lon', size='donation_total',
-                             hover_name='district', color='donation_total',
-                             projection="natural earth")
-    fig_map.update_geos(fitbounds="locations", center=dict(lat=23.6978, lon=120.9600), projection_scale=20)
-    st.plotly_chart(fig_map)
+    st.header('選區金流地圖（強化版）')
+    fig_map = px.scatter_geo(
+        map_data,
+        lat='lat',
+        lon='lon',
+        size='donation_total',
+        color='donation_total',
+        hover_name='district',
+        hover_data=['main_party', 'donation_total'],
+        color_continuous_scale='Blues',
+        size_max=50,
+        projection="natural earth",
+        scope="asia",
+        center=dict(lat=23.6978, lon=120.9600)
+    )
+
+    fig_map.update_geos(
+        showcountries=True,
+        showcoastlines=True,
+        showland=True,
+        landcolor="lightgray",
+        projection_scale=30,
+        fitbounds="locations"
+    )
+
+    st.plotly_chart(fig_map, use_container_width=True)
 
 with tab4:
     st.header('完整資料庫')
@@ -175,7 +203,7 @@ with tab4:
     col1, col2 = st.columns(2)
     with col1:
         if st.button('下載完整 CSV'):
-            csv = df.to_csv(index=False).encode('utf-8')
+            csv = df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8')
             st.download_button("下載 CSV", csv, "polittrack_data.csv", "text/csv")
 
     with col2:
