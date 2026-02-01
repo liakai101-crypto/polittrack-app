@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-import networkx as nx
 from io import BytesIO
 import datetime
 from fpdf import FPDF
@@ -19,9 +17,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# 加 logo
 st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_Republic_of_China.svg/320px-Flag_of_the_Republic_of_China.svg.png", width=80)
+
 st.title('Taiwan PoliTrack - 台灣政治透明平台')
 
+# 加中立說明文字 + 資料來源連結按鈕
 st.markdown("""
 **平台中立聲明**  
 本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
@@ -56,7 +57,7 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ==================== 讀取資料 + 最後更新時間 ====================
+# ==================== 讀取資料 ====================
 @st.cache_data
 def load_data():
     try:
@@ -71,7 +72,7 @@ df = load_data()
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.info(f"資料最後更新：{last_update}")
 
-# ==================== 進階搜尋與篩選 ====================
+# ==================== 進階搜尋 ====================
 st.sidebar.header("進階搜尋與篩選")
 
 search_name = st.sidebar.text_input("姓名包含")
@@ -88,7 +89,7 @@ sort_by = st.sidebar.selectbox("排序方式", ["無排序", "捐款金額降序
 if st.sidebar.button("重置篩選"):
     st.rerun()
 
-# ==================== 先過濾資料 ====================
+# 過濾資料
 filtered_df = df.copy()
 if search_name:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
@@ -112,7 +113,7 @@ elif sort_by == "提案數降序":
     filtered_df['proposal_count'] = filtered_df['legislation_record'].str.extract('(\d+)').astype(float)
     filtered_df = filtered_df.sort_values('proposal_count', ascending=False)
 
-# ==================== 加捐款異常警示 ====================
+# 加捐款異常警示
 def add_warning(row):
     if row.get('donation_amount', 0) > 10000000 and '企業' in str(row.get('top_donor', '')) and '法案' in str(row.get('association', '')):
         return "⚠️ 異常捐款警示：金額高且議題高度相關"
@@ -120,122 +121,91 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 強化選區金流地圖 ====================
-map_data = pd.DataFrame({
-    'district': ['台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '台東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
-    'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
-    'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
-    'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
-    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨'],
-    'hover_text': ['台北市 - 國民黨主導', '新北市 - 國民黨優勢', '桃園市 - 民進黨強勢', '台中市 - 民進黨優勢', '台南市 - 綠營大本營', '高雄市 - 綠營重鎮', '基隆市 - 藍營優勢', '新竹市 - 科技城', '嘉義市 - 綠營優勢', '宜蘭縣 - 綠營優勢', '新竹縣 - 藍營優勢', '苗栗縣 - 藍營大本營', '彰化縣 - 綠營優勢', '南投縣 - 藍營優勢', '雲林縣 - 綠營優勢', '嘉義縣 - 綠營優勢', '屏東縣 - 綠營優勢', '台東縣 - 綠營優勢', '花蓮縣 - 藍營優勢', '澎湖縣 - 無黨籍優勢', '金門縣 - 藍營優勢', '連江縣 - 藍營優勢']
-})
+# ==================== 主內容分頁 ====================
+tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "關聯分析與地圖", "完整資料庫"])
 
-st.subheader('選區金流地圖（強化版）')
-fig_map = px.scatter_geo(
-    map_data,
-    lat='lat',
-    lon='lon',
-    size='donation_total',
-    color='donation_total',
-    hover_name='district',
-    hover_data=['main_party', 'donation_total', 'hover_text'],
-    color_continuous_scale='Blues',
-    size_max=50,
-    projection="natural earth",
-    scope="asia",
-    center=dict(lat=23.6978, lon=120.9600)
-)
+with tab1:
+    st.header('查詢結果')
+    st.write(f"找到 {len(filtered_df)} 筆資料")
+    st.dataframe(filtered_df)
 
-fig_map.update_geos(
-    showcountries=True,
-    showcoastlines=True,
-    showland=True,
-    landcolor="lightgray",
-    projection_scale=30,
-    fitbounds="locations"
-)
+    st.subheader('財產趨勢圖')
+    fig_trend = px.line(filtered_df, x='name', y=['assets_2024', 'assets_2025'], title='財產變化')
+    st.plotly_chart(fig_trend)
 
-fig_map.update_traces(
-    hovertemplate="<b>%{hovertext}</b><br>" +
-                  "主要黨派: %{customdata[0]}<br>" +
-                  "總捐款: %{customdata[1]:,} 元<br>" +
-                  "%{customdata[2]}<extra></extra>"
-)
+    st.subheader('捐款總額排行')
+    fig_bar = px.bar(filtered_df.sort_values('donation_total', ascending=False), x='name', y='donation_total')
+    st.plotly_chart(fig_bar)
 
-st.plotly_chart(fig_map, use_container_width=True)
+    st.subheader('捐款來源比例')
+    donor_type_counts = filtered_df['donor_type'].value_counts()
+    fig_pie = px.pie(donor_type_counts, values=donor_type_counts.values, names=donor_type_counts.index)
+    st.plotly_chart(fig_pie)
 
-# ==================== 強化關聯分析 ====================
-st.header('關聯分析（強化版）')
-G = nx.Graph()
+    st.subheader('黨派捐款比較')
+    party_sum = filtered_df.groupby('party')['donation_total'].sum().reset_index()
+    fig_party = px.bar(party_sum, x='party', y='donation_total')
+    st.plotly_chart(fig_party)
 
-for idx, row in filtered_df.iterrows():
-    donor = row['name']
-    assoc = row['association']
-    amount = row['donation_amount'] / 1000000
-    G.add_edge(donor, assoc, weight=amount)
+    st.subheader('捐款年份變化')
+    year_sum = filtered_df.groupby('donation_year')['donation_total'].sum().reset_index()
+    fig_time = px.line(year_sum, x='donation_year', y='donation_total')
+    st.plotly_chart(fig_time)
 
-pos = nx.spring_layout(G, seed=42, k=0.5)
+with tab2:
+    st.header('大額捐款者排行榜')
+    top_donors = filtered_df.sort_values('donation_amount', ascending=False).head(15)
+    st.dataframe(top_donors[['name', 'top_donor', 'donation_amount']])
+    fig_rank = px.bar(top_donors, x='top_donor', y='donation_amount', color='name')
+    st.plotly_chart(fig_rank)
 
-edge_x, edge_y = [], []
-for edge in G.edges(data=True):
-    x0, y0 = pos[edge[0]]
-    x1, y1 = pos[edge[1]]
-    edge_x.extend([x0, x1, None])
-    edge_y.extend([y0, y1, None])
+with tab3:
+    # 強化選區金流地圖
+    st.subheader('選區金流地圖（強化版）')
+    fig_map = px.scatter_geo(map_data, lat='lat', lon='lon', size='donation_total',
+                             hover_name='district', color='donation_total',
+                             projection="natural earth")
+    fig_map.update_geos(fitbounds="locations", center=dict(lat=23.6978, lon=120.9600), projection_scale=20)
+    st.plotly_chart(fig_map)
 
-edge_trace = go.Scatter(
-    x=edge_x, y=edge_y,
-    line=dict(width=2, color='#888'),
-    hoverinfo='none',
-    mode='lines'
-)
+with tab4:
+    st.header('完整資料庫')
+    st.dataframe(df)
 
-node_x, node_y, node_text, node_size, node_color = [], [], [], [], []
-for node in G.nodes():
-    x, y = pos[node]
-    node_x.append(x)
-    node_y.append(y)
-    node_text.append(node)
-    
-    degree = G.degree(node)
-    node_size.append(degree * 20 + 20)
-    
-    if '企業' in node or '集團' in node:
-        node_color.append('#FF6B6B')
-    elif '個人' in node:
-        node_color.append('#4ECDC4')
-    else:
-        node_color.append('#45B7D1')
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button('下載完整 CSV'):
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("下載 CSV", csv, "polittrack_data.csv", "text/csv")
 
-node_trace = go.Scatter(
-    x=node_x, y=node_y,
-    mode='markers+text',
-    hoverinfo='text',
-    text=node_text,
-    textposition="top center",
-    marker=dict(
-        showscale=False,
-        color=node_color,
-        size=node_size,
-        line_width=2
-    )
-)
+    with col2:
+        selected_name = st.selectbox("選擇候選人匯出報告", df['name'].unique())
+        if st.button('匯出 PDF 報告'):
+            selected = df[df['name'] == selected_name].iloc[0]
 
-fig_net = go.Figure(data=[edge_trace, node_trace],
-                    layout=go.Layout(
-                        showlegend=False,
-                        hovermode='closest',
-                        margin=dict(b=20,l=5,r=5,t=40),
-                        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
-                    ))
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", 'B', 16)
+            pdf.cell(0, 10, "Taiwan PoliTrack 個人報告", ln=1, align='C')
+            pdf.ln(10)
 
-st.plotly_chart(fig_net, use_container_width=True)
+            pdf.set_font("Arial", size=12)
+            pdf.cell(0, 10, f"姓名: {selected['name']}", ln=1)
+            pdf.cell(0, 10, f"黨籍: {selected['party']}", ln=1)
+            pdf.cell(0, 10, f"捐款總額: {selected['donation_total']:,} 元", ln=1)
+            pdf.cell(0, 10, f"財產 (2025): {selected['assets_2025']:,} 元", ln=1)
+            pdf.cell(0, 10, f"立法紀錄: {selected['legislation_record']}", ln=1)
+            pdf.cell(0, 10, f"警示: {selected.get('warning', '無異常')}", ln=1)
 
-# ==================== 其他分頁內容（簡化版，保持原樣） ====================
-tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "完整資料庫", "關聯與地圖"])
+            pdf_output = BytesIO()
+            pdf.output(pdf_output)
+            pdf_output.seek(0)
 
-# tab1, tab2, tab4 內容略（保持你原本的，或用之前版本）
-# tab3 已替換成強化版關聯分析
+            st.download_button(
+                label="下載標準 PDF 報告",
+                data=pdf_output,
+                file_name=f"report_{selected_name}.pdf",
+                mime="application/pdf"
+            )
 
 st.sidebar.info("資料從 polittrack_data.csv 讀取，用 Excel 更新後重新執行程式即可生效。")
