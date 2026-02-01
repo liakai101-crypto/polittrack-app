@@ -28,7 +28,7 @@ st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_
 
 st.title('Taiwan PoliTrack - 台灣政治透明平台')
 
-# 加中立聲明 + 資料來源連結
+# 中立聲明 + 資料來源連結
 st.markdown("""
 **平台中立聲明**  
 本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
@@ -177,6 +177,10 @@ with tab2:
 with tab3:
     st.header('選區金流地圖（僅台灣領土 + 高精準海岸線）')
     
+    # 先顯示 debug 資訊，確認資料是否正常
+    st.write("地圖資料筆數：", len(map_data))
+    st.write("範例資料：", map_data.head(3))
+
     fig_map = px.scatter_geo(
         map_data,
         lat='lat',
@@ -192,22 +196,23 @@ with tab3:
     )
 
     fig_map.update_geos(
-        visible=False,                      # 隱藏預設世界地圖
+        visible=False,                      # 完全隱藏預設世界地圖
         showland=True,
-        landcolor="#e8f4f8",               # 陸地淺藍綠色
+        landcolor="#e8f4f8",               # 陸地淺色
         showcountries=False,                # 不顯示國家邊界
         showsubunits=False,                 # 不顯示省界
         showlakes=False,
         showrivers=False,
-        projection_scale=150,               # 極大放大，聚焦台灣
-        lonaxis_range=[118.0, 123.0],       # 經度嚴格限制：東經118°~123°（涵蓋金門到東部）
-        lataxis_range=[21.8, 25.4]          # 緯度嚴格限制：北緯21.8°~25.4°（涵蓋屏東到基隆）
+        projection_scale=150,               # 超大放大，強制只顯示台灣
+        lonaxis_range=[118.0, 123.0],       # 經度鎖定：東經118°~123°（金門到東部）
+        lataxis_range=[21.8, 25.4]          # 緯度鎖定：北緯21.8°~25.4°（屏東到基隆）
     )
 
     fig_map.update_layout(
         margin=dict(l=0, r=0, t=30, b=0),
         geo=dict(bgcolor='rgba(240,248,255,0.8)'),  # 背景與整體配色一致
-        height=600
+        height=600,
+        title="台灣選區捐款熱圖（僅顯示台灣領土）"
     )
 
     st.plotly_chart(fig_map, use_container_width=True)
