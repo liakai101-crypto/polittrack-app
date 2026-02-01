@@ -127,7 +127,7 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 強化選區金流地圖（只顯示台灣領土 + 精準海岸線） ====================
+# ==================== 強化選區金流地圖（只顯示台灣領土 + 高精準海岸線） ====================
 map_data = pd.DataFrame({
     'district': ['台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '台東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
     'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
@@ -175,7 +175,7 @@ with tab2:
     st.plotly_chart(fig_rank)
 
 with tab3:
-    st.header('選區金流地圖（只顯示台灣領土 + 精準海岸線）')
+    st.header('選區金流地圖（僅台灣領土 + 高精準海岸線）')
     
     fig_map = px.scatter_geo(
         map_data,
@@ -192,21 +192,22 @@ with tab3:
     )
 
     fig_map.update_geos(
-        visible=False,                  # 隱藏預設世界地圖邊界
+        visible=False,                      # 隱藏預設世界地圖
         showland=True,
-        landcolor="#f0f0f0",           # 陸地淺灰色
-        showcountries=False,            # 不顯示國家邊界
-        showsubunits=False,             # 不顯示省界
+        landcolor="#e8f4f8",               # 陸地淺藍綠色
+        showcountries=False,                # 不顯示國家邊界
+        showsubunits=False,                 # 不顯示省界
         showlakes=False,
         showrivers=False,
-        projection_scale=120,           # 大幅放大，只顯示台灣範圍
-        lonaxis_range=[118, 123],       # 經度限制：只顯示東經118°到123°（台灣本島+離島）
-        lataxis_range=[21.5, 26.5]      # 緯度限制：北緯21.5°到26.5°
+        projection_scale=150,               # 極大放大，聚焦台灣
+        lonaxis_range=[118.0, 123.0],       # 經度嚴格限制：東經118°~123°（涵蓋金門到東部）
+        lataxis_range=[21.8, 25.4]          # 緯度嚴格限制：北緯21.8°~25.4°（涵蓋屏東到基隆）
     )
 
     fig_map.update_layout(
-        margin=dict(l=0, r=0, t=0, b=0),
-        geo=dict(bgcolor='rgba(0,0,0,0)')
+        margin=dict(l=0, r=0, t=30, b=0),
+        geo=dict(bgcolor='rgba(240,248,255,0.8)'),  # 背景與整體配色一致
+        height=600
     )
 
     st.plotly_chart(fig_map, use_container_width=True)
