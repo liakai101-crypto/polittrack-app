@@ -199,7 +199,7 @@ with tab3:
         map_data,
         geojson=taiwan_geojson,
         locations='district',
-        featureidkey='properties.COUNTYNAME',
+        featureidkey='properties.name',
         color='donation_total',
         color_continuous_scale='Blues',
         range_color=(map_data['donation_total'].min(), map_data['donation_total'].max()),
@@ -279,3 +279,4 @@ with tab4:
             )
 
 st.sidebar.info("資料從 polittrack_data.csv 讀取，用 Excel 更新後重新執行程式即可生效。")
+
