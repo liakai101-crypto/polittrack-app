@@ -185,56 +185,33 @@ with tab3:
         with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
             taiwan_geojson = json.load(f)
         st.write("GeoJSON 載入成功！開始繪製地圖...")
-        
-        # 檢查匹配成功的縣市數量
-        geo_counties = [feature['properties']['COUNTYNAME'] for feature in taiwan_geojson['features']]
-        matched = [d for d in map_data['district'] if d in geo_counties]
-        st.write(f"匹配成功的縣市數：{len(matched)} / 22")
     except FileNotFoundError:
         st.error("找不到 taiwan_counties.geojson，請確認已上傳到 repo 根目錄")
         st.stop()
 
-    # 填色地圖（choropleth）
     fig_map = px.choropleth_mapbox(
         map_data,
         geojson=taiwan_geojson,
         locations='district',
-        featureidkey='properties.name',
+        featureidkey='properties.name',  # 這裡改成 'name'
         color='donation_total',
         color_continuous_scale='Blues',
         range_color=(map_data['donation_total'].min(), map_data['donation_total'].max()),
         hover_name='district',
         hover_data=['main_party', 'donation_total'],
-        zoom=7.8,  # 調整為更適合台灣的比例
-        center={"lat": 23.7, "lon": 121.0},  # 中心更靠近台灣東部，讓離島顯示完整
-        opacity=0.6,
+        zoom=7.5,
+        center={"lat": 23.7, "lon": 121.0},
+        opacity=0.65,
         mapbox_style="white-bg"
     )
 
-    # 疊加捐款圓點（讓每個縣市中心有明顯標記）
-    fig_map.add_scattermapbox(
-        lat=map_data['lat'],
-        lon=map_data['lon'],
-        mode='markers',
-        marker=dict(
-            size=map_data['donation_total'] / 20000000,  # 調整大小比例
-            color=map_data['donation_total'],
-            colorscale='Blues',
-            showscale=False,
-            opacity=0.8,
-            line=dict(width=1, color='black')
-        ),
-        hoverinfo='text',
-        text=map_data['district'] + '<br>捐款: ' + map_data['donation_total'].astype(str) + ' 元'
-    )
-
     fig_map.update_layout(
-        margin={"r":0,"t":30,"l":0,"b":0},
-        height=700,
+        margin={"r":0,"t":0,"l":0,"b":0},
+        height=600,
         title="台灣選區捐款熱圖（僅顯示台灣領土）"
     )
 
-    fig_map.update_traces(marker_line_width=0.5, selector=dict(type='choroplethmapbox'))
+    fig_map.update_traces(marker_line_width=0.5)
 
     st.plotly_chart(fig_map, use_container_width=True)
 
@@ -279,4 +256,3 @@ with tab4:
             )
 
 st.sidebar.info("資料從 polittrack_data.csv 讀取，用 Excel 更新後重新執行程式即可生效。")
-
