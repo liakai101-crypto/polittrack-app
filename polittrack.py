@@ -180,7 +180,7 @@ with tab3:
     
     st.write("地圖資料筆數：", len(map_data))
 
-    # 讀取你上傳的 GeoJSON 檔案
+    # 讀取 GeoJSON
     try:
         with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
             taiwan_geojson = json.load(f)
