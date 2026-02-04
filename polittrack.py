@@ -182,7 +182,7 @@ with tab3:
 
     # 讀取 GeoJSON
     try:
-        with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
+        with open("taiwan_counties.json", "r", encoding="utf-8") as f:
             taiwan_geojson = json.load(f)
         st.write("GeoJSON 載入成功！開始繪製地圖...")
     except FileNotFoundError:
@@ -256,3 +256,4 @@ with tab4:
             )
 
 st.sidebar.info("資料從 polittrack_data.csv 讀取，用 Excel 更新後重新執行程式即可生效。")
+
