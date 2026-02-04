@@ -185,33 +185,74 @@ with tab3:
         with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
             taiwan_geojson = json.load(f)
         st.write("GeoJSON 載入成功！開始繪製地圖...")
+        
+        # 自動偵測縣市名稱鍵值並顯示第一筆 properties
+        first_properties = taiwan_geojson['features'][0]['properties']
+        st.write("GeoJSON 第一筆 properties 內容（用來確認縣市鍵值）：")
+        st.json(first_properties)
+        
+        # 嘗試常見鍵值
+        possible_keys = ['name', 'NAME', 'COUNTYNAME', 'CNAME', '縣市', '縣市名稱', 'COUNTY']
+        county_key = None
+        for key in possible_keys:
+            if key in first_properties:
+                county_key = key
+                st.write(f"自動偵測到縣市名稱鍵值：properties.{county_key}")
+                break
+        
+        if county_key is None:
+            st.error("無法自動偵測縣市名稱鍵值，請檢查 GeoJSON properties 並告訴我縣市名稱的鍵值")
+            st.stop()
+        
+        # 匹配縣市
+        geo_counties = [feature['properties'][county_key] for feature in taiwan_geojson['features']]
+        matched = [d for d in map_data['district'] if d in geo_counties or d.replace('臺', '台') in geo_counties]
+        st.write(f"匹配成功的縣市數：{len(matched)} / 22")
     except FileNotFoundError:
         st.error("找不到 taiwan_counties.geojson，請確認已上傳到 repo 根目錄")
         st.stop()
 
+    # 填色地圖
     fig_map = px.choropleth_mapbox(
         map_data,
         geojson=taiwan_geojson,
         locations='district',
-        featureidkey='properties.name',  # 這裡改成 'name'
+        featureidkey=f'properties.{county_key}',
         color='donation_total',
         color_continuous_scale='Blues',
         range_color=(map_data['donation_total'].min(), map_data['donation_total'].max()),
         hover_name='district',
         hover_data=['main_party', 'donation_total'],
-        zoom=7.5,
-        center={"lat": 23.7, "lon": 121.0},
-        opacity=0.65,
+        zoom=7.2,  # 調整為更適合顯示離島
+        center={"lat": 23.5, "lon": 121.0},  # 中心偏東，讓東部與離島完整顯示
+        opacity=0.6,
         mapbox_style="white-bg"
     )
 
+    # 疊加捐款圓點標記
+    fig_map.add_scattermapbox(
+        lat=map_data['lat'],
+        lon=map_data['lon'],
+        mode='markers',
+        marker=dict(
+            size=map_data['donation_total'] / 20000000 + 10,  # 最小點也要看得見
+            color=map_data['donation_total'],
+            colorscale='Blues',
+            showscale=False,
+            opacity=0.9,
+            line=dict(width=1, color='black')
+        ),
+        hoverinfo='text',
+        text=map_data['district'] + '<br>捐款: ' + map_data['donation_total'].astype(str) + ' 元<br>黨派: ' + map_data['main_party']
+    )
+
     fig_map.update_layout(
-        margin={"r":0,"t":0,"l":0,"b":0},
-        height=600,
+        margin={"r":0,"t":30,"l":0,"b":0},
+        height=700,
         title="台灣選區捐款熱圖（僅顯示台灣領土）"
     )
 
-    fig_map.update_traces(marker_line_width=0.5)
+    fig_map.update_traces(marker_line_width=0.5, selector=dict(type='choroplethmapbox'))
 
     st.plotly_chart(fig_map, use_container_width=True)
 
