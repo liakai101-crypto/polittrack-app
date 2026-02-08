@@ -123,18 +123,22 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 假資料（經緯度 + 黨派） ====================
-fake_map_data = pd.DataFrame({
+# ==================== 假資料（經緯度 + 黨派 + 預設捐款 0） ====================
+real_map_data = pd.DataFrame({
     'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
     'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
     'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
-    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
+    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨'],
+    'donation_total': [0] * 22,
+    'candidate_count': [0] * 22,
+    'avg_donation': [0] * 22,
+    'max_donation': [0] * 22,
+    'main_year': ['未知'] * 22
 })
 
-# ==================== 真實資料整合（排除全國） ====================
-real_map_data = fake_map_data.copy()
-
+# ==================== 真實資料整合（逐行更新，避免 KeyError） ====================
 if 'district' in df.columns and 'donation_total' in df.columns:
+    # 排除「全國」
     df_local = df[df['district'] != '全國'].copy()
     
     if not df_local.empty:
@@ -146,19 +150,20 @@ if 'district' in df.columns and 'donation_total' in df.columns:
             main_year=('donation_year', lambda x: x.mode().iloc[0] if not x.mode().empty else '未知')
         ).reset_index()
         
-        real_map_data = real_map_data.merge(agg_df, on='district', how='left')
-        
-        # 安全填補 NaN
-        real_map_data['donation_total'] = real_map_data['donation_total_y'].fillna(real_map_data['donation_total_x'])
-        real_map_data['candidate_count'] = real_map_data['candidate_count'].fillna(0).astype(int)
-        real_map_data['avg_donation'] = real_map_data['avg_donation'].fillna(0)
-        real_map_data['max_donation'] = real_map_data['max_donation'].fillna(0)
-        real_map_data['main_year'] = real_map_data['main_year'].fillna('未知')
-        
-        real_map_data = real_map_data.drop(columns=['donation_total_x', 'donation_total_y'], errors='ignore')
+        # 逐行更新 real_map_data（最安全，不依賴 merge 欄位）
+        for _, row in agg_df.iterrows():
+            dist = row['district']
+            if dist in real_map_data['district'].values:
+                mask = real_map_data['district'] == dist
+                real_map_data.loc[mask, 'donation_total'] = row['donation_total']
+                real_map_data.loc[mask, 'candidate_count'] = row['candidate_count']
+                real_map_data.loc[mask, 'avg_donation'] = row['avg_donation']
+                real_map_data.loc[mask, 'max_donation'] = row['max_donation']
+                real_map_data.loc[mask, 'main_year'] = row['main_year']
 
-# 最終防呆：確保 donation_total 是數字，沒有 NaN
-real_map_data['donation_total'] = pd.to_numeric(real_map_data['donation_total'], errors='coerce').fillna(0)
+# 最終防呆：確保所有數值欄位都是數字，沒有 NaN
+for col in ['donation_total', 'candidate_count', 'avg_donation', 'max_donation']:
+    real_map_data[col] = pd.to_numeric(real_map_data[col], errors='coerce').fillna(0)
 
 # ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
@@ -240,7 +245,7 @@ with tab3:
         selector=dict(type='choroplethmapbox')
     )
 
-    # 修正：先填補 NaN 再做 astype(int)
+    # 修正標籤：先填 NaN 為 0，再轉型
     label_amount = (real_map_data['donation_total'].fillna(0) / 1000000).round(0).astype(int).astype(str) + 'M'
     label_text = real_map_data['district'] + '<br>' + label_amount
 
