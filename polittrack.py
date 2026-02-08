@@ -190,6 +190,43 @@ with tab3:
         st.stop()
 
     fig_map = px.choropleth_mapbox(
+    map_data,
+    geojson=taiwan_geojson,
+    locations='district',
+    featureidkey='properties.name',  # 如果還是空白，試改成 'properties.COUNTYNAME'
+    color='donation_total',
+    color_continuous_scale='Blues',
+    range_color=(map_data['donation_total'].min(), map_data['donation_total'].max()),
+    hover_name='district',
+    hover_data=['main_party', 'donation_total'],
+    zoom=7.8,  # 放大一點，讓細節更清楚
+    center={"lat": 23.58, "lon": 120.98},  # 中心調整到台灣中間偏東，讓離島顯示完整
+    opacity=0.8,  # 增加透明度，讓填色更明顯
+    mapbox_style="white-bg"
+)
+
+# 加粗邊界線，讓地圖更清楚
+fig_map.update_traces(
+    marker_line_width=1.5,  # 邊界線加粗
+    marker_line_color='black',  # 邊界線變黑
+    selector=dict(type='choroplethmapbox')
+)
+
+# 加縣市名稱標籤（可選，如果想看縣市名）
+fig_map.add_scattermapbox(
+    lat=map_data['lat'],
+    lon=map_data['lon'],
+    mode='text',
+    text=map_data['district'],
+    textfont=dict(size=10, color='black'),
+    hoverinfo='none'
+)
+
+fig_map.update_layout(
+    margin={"r":0,"t":30,"l":0,"b":0},
+    height=700,
+    title="台灣選區捐款熱圖（僅顯示台灣領土）"
+)
         map_data,
         geojson=taiwan_geojson,
         locations='district',
