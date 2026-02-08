@@ -123,38 +123,46 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 假資料（作為基礎） ====================
+# ==================== 假資料（經緯度 + 黨派） ====================
 fake_map_data = pd.DataFrame({
     'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
     'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
     'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
-    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨'],
-    'donation_total': [0] * 22  # 先設 0，後面會被真實資料覆蓋
+    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
 })
 
-# ==================== 真實資料整合（最穩健版） ====================
+# ==================== 真實資料整合（排除「全國」） ====================
 real_map_data = fake_map_data.copy()
 
-# 只有當 CSV 有 district 欄位時才計算真實總額
-if 'district' in df.columns:
-    # 清理資料：移除空值
-    df_clean = df[df['district'].notna()]
+if 'district' in df.columns and 'donation_total' in df.columns:
+    # 排除「全國」
+    df_local = df[df['district'] != '全國'].copy()
     
-    if 'donation_total' in df_clean.columns:
-        # 計算每個縣市總捐款
-        totals = df_clean.groupby('district')['donation_total'].sum().reset_index(name='calculated_total')
+    if not df_local.empty:
+        # 計算每個縣市總捐款、候選人數、平均捐款、最大捐款、主要年份
+        agg_df = df_local.groupby('district').agg(
+            donation_total=('donation_total', 'sum'),
+            candidate_count=('name', 'nunique'),  # 候選人數
+            avg_donation=('donation_total', 'mean'),
+            max_donation=('donation_amount', 'max'),
+            main_year=('donation_year', lambda x: x.mode().iloc[0] if not x.mode().empty else '未知')
+        ).reset_index()
         
         # 合併到地圖資料
-        real_map_data = real_map_data.merge(totals, on='district', how='left')
+        real_map_data = real_map_data.merge(agg_df, on='district', how='left')
         
-        # 用計算出的總額覆蓋（如果有值）
-        real_map_data['donation_total'] = real_map_data['calculated_total'].fillna(real_map_data['donation_total'])
-        real_map_data = real_map_data.drop(columns=['calculated_total'], errors='ignore')
+        # 用真實總額覆蓋（沒有匹配的保持 0）
+        real_map_data['donation_total'] = real_map_data['donation_total_y'].combine_first(real_map_data['donation_total_x'])
+        real_map_data = real_map_data.drop(columns=['donation_total_x', 'donation_total_y'], errors='ignore')
 
-# 確保所有必要欄位存在
+# 確保必要欄位存在
 real_map_data['lat'] = real_map_data['lat'].fillna(23.7)
 real_map_data['lon'] = real_map_data['lon'].fillna(121.0)
 real_map_data['main_party'] = real_map_data['main_party'].fillna('未知')
+real_map_data['candidate_count'] = real_map_data['candidate_count'].fillna(0)
+real_map_data['avg_donation'] = real_map_data['avg_donation'].fillna(0)
+real_map_data['max_donation'] = real_map_data['max_donation'].fillna(0)
+real_map_data['main_year'] = real_map_data['main_year'].fillna('未知')
 
 # ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
@@ -218,7 +226,11 @@ with tab3:
         hover_name='district',
         hover_data={
             'main_party': True,
-            'donation_total': ':,.0f 元'
+            'donation_total': ':,.0f 元',
+            'candidate_count': '候選人數：',
+            'avg_donation': '平均捐款：:,.0f 元',
+            'max_donation': '最大單筆：:,.0f 元',
+            'main_year': '主要年份：'
         },
         zoom=7.8,
         center={"lat": 23.58, "lon": 120.98},
@@ -248,6 +260,19 @@ with tab3:
     )
 
     st.plotly_chart(fig_map, use_container_width=True)
+
+    # 新增：捐款前 10 名縣市排行表格
+    st.subheader("捐款前 10 名縣市排行")
+    top_counties = real_map_data.sort_values('donation_total', ascending=False).head(10)
+    top_counties_display = top_counties[['district', 'donation_total', 'main_party', 'candidate_count']].copy()
+    top_counties_display['donation_total'] = top_counties_display['donation_total'].apply(lambda x: f"{x:,.0f} 元")
+    top_counties_display = top_counties_display.rename(columns={
+        'district': '縣市',
+        'donation_total': '總捐款金額',
+        'main_party': '主要黨派',
+        'candidate_count': '候選人數'
+    })
+    st.dataframe(top_counties_display, use_container_width=True)
 
 with tab4:
     st.header('完整資料庫')
