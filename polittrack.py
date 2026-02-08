@@ -24,12 +24,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 加 logo
 st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_Republic_of_China.svg/320px-Flag_of_the_Republic_of_China.svg.png", width=80)
 
 st.title('Taiwan PoliTrack - 台灣政治透明平台')
 
-# 中立聲明 + 資料來源連結
 st.markdown("""
 **平台中立聲明**  
 本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
@@ -96,7 +94,6 @@ sort_by = st.sidebar.selectbox("排序方式", ["無排序", "捐款金額降序
 if st.sidebar.button("重置篩選"):
     st.rerun()
 
-# 過濾資料
 filtered_df = df.copy()
 if search_name:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
@@ -110,7 +107,6 @@ filtered_df = filtered_df[(filtered_df['donation_total'] >= search_donation_min)
 if search_area != "全部":
     filtered_df = filtered_df[filtered_df['district'] == search_area]
 
-# 排序
 if sort_by == "捐款金額降序":
     filtered_df = filtered_df.sort_values('donation_total', ascending=False)
 elif sort_by == "財產增長率降序":
@@ -120,7 +116,6 @@ elif sort_by == "提案數降序":
     filtered_df['proposal_count'] = filtered_df['legislation_record'].str.extract('(\d+)').astype(float)
     filtered_df = filtered_df.sort_values('proposal_count', ascending=False)
 
-# 加捐款異常警示
 def add_warning(row):
     if row.get('donation_amount', 0) > 10000000 and '企業' in str(row.get('top_donor', '')) and '法案' in str(row.get('association', '')):
         return "⚠️ 異常捐款警示：金額高且議題高度相關"
@@ -128,14 +123,23 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 選區金流地圖資料 ====================
-map_data = pd.DataFrame({
-    'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
-    'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
-    'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
-    'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
-    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
-})
+# ==================== 真實資料整合：計算每個縣市的捐款總額 ====================
+# 假設你的 CSV 有 'district' 和 'donation_total' 欄位
+if 'district' in df.columns and 'donation_total' in df.columns:
+    real_map_data = df.groupby('district')['donation_total'].sum().reset_index()
+    real_map_data = real_map_data.rename(columns={'donation_total': 'donation_total'})
+    # 合併經緯度與主要黨派（如果沒有就用原本的）
+    real_map_data = real_map_data.merge(
+        map_data[['district', 'lat', 'lon', 'main_party']],
+        on='district',
+        how='left'
+    )
+    # 填補缺失的經緯度/黨派（如果有新縣市）
+    real_map_data['lat'] = real_map_data['lat'].fillna(23.7)
+    real_map_data['lon'] = real_map_data['lon'].fillna(121.0)
+    real_map_data['main_party'] = real_map_data['main_party'].fillna('未知')
+else:
+    real_map_data = map_data  # 如果 CSV 沒有 district，用假資料
 
 # ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
@@ -178,7 +182,7 @@ with tab2:
 with tab3:
     st.header('選區金流地圖（僅台灣領土）')
     
-    st.write("地圖資料筆數：", len(map_data))
+    st.write("地圖資料筆數：", len(real_map_data))
 
     try:
         with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
@@ -189,35 +193,40 @@ with tab3:
         st.stop()
 
     fig_map = px.choropleth_mapbox(
-        map_data,
+        real_map_data,
         geojson=taiwan_geojson,
         locations='district',
         featureidkey='properties.name',
         color='donation_total',
         color_continuous_scale='Blues',
-        range_color=(map_data['donation_total'].min(), map_data['donation_total'].max()),
+        range_color=(real_map_data['donation_total'].min(), real_map_data['donation_total'].max()),
         hover_name='district',
-        hover_data=['main_party', 'donation_total'],
+        hover_data={
+            'main_party': True,
+            'donation_total': ':,.0f 元',
+            'lat': False,
+            'lon': False
+        },
         zoom=7.8,
         center={"lat": 23.58, "lon": 120.98},
         opacity=0.85,
-        mapbox_style="carto-positron"  # 有簡單底圖，讓地圖更完整
+        mapbox_style="carto-positron"
     )
 
-    # 邊界強化：細一點但清晰（1.5px 黑線）
+    # 邊界強化：細膩黑線
     fig_map.update_traces(
-        marker_line_width=1.5,          # 邊界線寬度（1.5 比較細膩）
-        marker_line_color='black',      # 邊界線顏色
+        marker_line_width=1.2,
+        marker_line_color='#333333',
         selector=dict(type='choroplethmapbox')
     )
 
-    # 加縣市名稱標籤（黑粗體）
+    # 加縣市名稱 + 金額標籤（例如：臺北市\n850M）
     fig_map.add_scattermapbox(
-        lat=map_data['lat'],
-        lon=map_data['lon'],
+        lat=real_map_data['lat'],
+        lon=real_map_data['lon'],
         mode='text',
-        text=map_data['district'],
-        textfont=dict(size=11, color='black', family="Arial Black"),
+        text=real_map_data['district'] + '<br>' + (real_map_data['donation_total'] / 1000000).round(0).astype(int).astype(str) + 'M',
+        textfont=dict(size=10, color='black', family="Arial"),
         hoverinfo='none'
     )
 
