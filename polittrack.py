@@ -123,7 +123,7 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 假資料（用來補經緯度與黨派） ====================
+# ==================== 假資料（經緯度 + 黨派） ====================
 fake_map_data = pd.DataFrame({
     'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
     'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
@@ -131,26 +131,25 @@ fake_map_data = pd.DataFrame({
     'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
 })
 
-# ==================== 真實資料整合：計算每個縣市的捐款總額 ====================
-real_map_data = fake_map_data.copy()  # 以假資料為基礎
+# ==================== 真實資料整合 ====================
+real_map_data = fake_map_data.copy()
 
 if 'district' in df.columns and 'donation_total' in df.columns:
-    real_totals = df.groupby('district')['donation_total'].sum().reset_index(name='donation_total')
+    # 計算每個縣市真實捐款總額
+    real_totals = df.groupby('district')['donation_total'].sum().reset_index(name='real_total')
     
-    # 合併真實總額（使用 left join，避免 KeyError）
+    # 合併（left join）
     real_map_data = real_map_data.merge(real_totals, on='district', how='left')
     
-    # 用真實總額取代（沒有匹配的保持原假資料）
-    real_map_data['donation_total'] = real_map_data['donation_total_y'].combine_first(real_map_data['donation_total_x'])
-    real_map_data = real_map_data.drop(columns=['donation_total_x', 'donation_total_y'], errors='ignore')
+    # 如果有真實總額，就用它；沒有就保持假資料的 donation_total
+    if 'real_total' in real_map_data.columns:
+        real_map_data['donation_total'] = real_map_data['real_total'].combine_first(real_map_data['donation_total'])
+        real_map_data = real_map_data.drop(columns=['real_total'], errors='ignore')
 
-# 確保經緯度與黨派存在
-if 'lat' not in real_map_data.columns:
-    real_map_data['lat'] = 23.7
-if 'lon' not in real_map_data.columns:
-    real_map_data['lon'] = 121.0
-if 'main_party' not in real_map_data.columns:
-    real_map_data['main_party'] = '未知'
+# 確保經緯度和黨派存在（防呆）
+real_map_data['lat'] = real_map_data.get('lat', 23.7)
+real_map_data['lon'] = real_map_data.get('lon', 121.0)
+real_map_data['main_party'] = real_map_data.get('main_party', '未知')
 
 # ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
