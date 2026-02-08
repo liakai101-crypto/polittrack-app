@@ -123,23 +123,33 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
+# ==================== 原本的假資料（用來補經緯度和黨派） ====================
+fake_map_data = pd.DataFrame({
+    'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
+    'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
+    'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
+    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
+})
+
 # ==================== 真實資料整合：計算每個縣市的捐款總額 ====================
-# 假設你的 CSV 有 'district' 和 'donation_total' 欄位
+real_map_data = fake_map_data.copy()  # 先用假資料當基礎
+
 if 'district' in df.columns and 'donation_total' in df.columns:
-    real_map_data = df.groupby('district')['donation_total'].sum().reset_index()
-    real_map_data = real_map_data.rename(columns={'donation_total': 'donation_total'})
-    # 合併經緯度與主要黨派（如果沒有就用原本的）
+    # 計算真實總額
+    real_totals = df.groupby('district')['donation_total'].sum().reset_index()
+    real_totals = real_totals.rename(columns={'donation_total': 'donation_total_real'})
+    
+    # 合併到 real_map_data
     real_map_data = real_map_data.merge(
-        map_data[['district', 'lat', 'lon', 'main_party']],
-        on='district',
+        real_totals,
+        left_on='district',
+        right_on='district',
         how='left'
     )
-    # 填補缺失的經緯度/黨派（如果有新縣市）
-    real_map_data['lat'] = real_map_data['lat'].fillna(23.7)
-    real_map_data['lon'] = real_map_data['lon'].fillna(121.0)
-    real_map_data['main_party'] = real_map_data['main_party'].fillna('未知')
-else:
-    real_map_data = map_data  # 如果 CSV 沒有 district，用假資料
+    
+    # 用真實總額取代假的（如果有匹配）
+    real_map_data['donation_total'] = real_map_data['donation_total_real'].fillna(real_map_data['donation_total'])
+    real_map_data = real_map_data.drop(columns=['donation_total_real'], errors='ignore')
 
 # ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
@@ -203,9 +213,7 @@ with tab3:
         hover_name='district',
         hover_data={
             'main_party': True,
-            'donation_total': ':,.0f 元',
-            'lat': False,
-            'lon': False
+            'donation_total': ':,.0f 元'
         },
         zoom=7.8,
         center={"lat": 23.58, "lon": 120.98},
@@ -213,14 +221,14 @@ with tab3:
         mapbox_style="carto-positron"
     )
 
-    # 邊界強化：細膩黑線
+    # 邊界：細膩深灰線
     fig_map.update_traces(
         marker_line_width=1.2,
         marker_line_color='#333333',
         selector=dict(type='choroplethmapbox')
     )
 
-    # 加縣市名稱 + 金額標籤（例如：臺北市\n850M）
+    # 標籤：縣市名 + 金額M
     fig_map.add_scattermapbox(
         lat=real_map_data['lat'],
         lon=real_map_data['lon'],
