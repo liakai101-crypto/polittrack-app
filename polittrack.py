@@ -6,7 +6,6 @@ from io import BytesIO
 import datetime
 from fpdf import FPDF
 
-# ==================== 頁面設定與美化 ====================
 st.set_page_config(
     page_title="Taiwan PoliTrack - 政治透明平台",
     page_icon="https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_Republic_of_China.svg/32px-Flag_of_the_Republic_of_China.svg.png",
@@ -24,12 +23,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 加 logo
 st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_Republic_of_China.svg/320px-Flag_of_the_Republic_of_China.svg.png", width=80)
 
 st.title('Taiwan PoliTrack - 台灣政治透明平台')
 
-# 中立聲明 + 資料來源連結
 st.markdown("""
 **平台中立聲明**  
 本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
@@ -44,7 +41,6 @@ with col1:
 with col2:
     st.markdown("[立法院開放資料平台](https://data.ly.gov.tw)")
 
-# ==================== 登入功能 ====================
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
@@ -64,7 +60,6 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ==================== 讀取資料 ====================
 @st.cache_data
 def load_data():
     try:
@@ -79,7 +74,6 @@ df = load_data()
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.info(f"資料最後更新：{last_update}")
 
-# ==================== 進階搜尋與篩選 ====================
 st.sidebar.header("進階搜尋與篩選")
 
 search_name = st.sidebar.text_input("姓名包含")
@@ -96,7 +90,6 @@ sort_by = st.sidebar.selectbox("排序方式", ["無排序", "捐款金額降序
 if st.sidebar.button("重置篩選"):
     st.rerun()
 
-# 過濾資料
 filtered_df = df.copy()
 if search_name:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
@@ -110,7 +103,6 @@ filtered_df = filtered_df[(filtered_df['donation_total'] >= search_donation_min)
 if search_area != "全部":
     filtered_df = filtered_df[filtered_df['district'] == search_area]
 
-# 排序
 if sort_by == "捐款金額降序":
     filtered_df = filtered_df.sort_values('donation_total', ascending=False)
 elif sort_by == "財產增長率降序":
@@ -120,7 +112,6 @@ elif sort_by == "提案數降序":
     filtered_df['proposal_count'] = filtered_df['legislation_record'].str.extract('(\d+)').astype(float)
     filtered_df = filtered_df.sort_values('proposal_count', ascending=False)
 
-# 加捐款異常警示
 def add_warning(row):
     if row.get('donation_amount', 0) > 10000000 and '企業' in str(row.get('top_donor', '')) and '法案' in str(row.get('association', '')):
         return "⚠️ 異常捐款警示：金額高且議題高度相關"
@@ -128,7 +119,6 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 選區金流地圖資料 ====================
 map_data = pd.DataFrame({
     'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
     'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
@@ -137,7 +127,6 @@ map_data = pd.DataFrame({
     'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
 })
 
-# ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
 
 with tab1:
@@ -180,7 +169,6 @@ with tab3:
     
     st.write("地圖資料筆數：", len(map_data))
 
-    # 讀取 GeoJSON
     try:
         with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
             taiwan_geojson = json.load(f)
@@ -190,43 +178,6 @@ with tab3:
         st.stop()
 
     fig_map = px.choropleth_mapbox(
-    map_data,
-    geojson=taiwan_geojson,
-    locations='district',
-    featureidkey='properties.name',  # 如果還是空白，試改成 'properties.COUNTYNAME'
-    color='donation_total',
-    color_continuous_scale='Blues',
-    range_color=(map_data['donation_total'].min(), map_data['donation_total'].max()),
-    hover_name='district',
-    hover_data=['main_party', 'donation_total'],
-    zoom=7.8,  # 放大一點，讓細節更清楚
-    center={"lat": 23.58, "lon": 120.98},  # 中心調整到台灣中間偏東，讓離島顯示完整
-    opacity=0.8,  # 增加透明度，讓填色更明顯
-    mapbox_style="white-bg"
-)
-
-# 加粗邊界線，讓地圖更清楚
-fig_map.update_traces(
-    marker_line_width=1.5,  # 邊界線加粗
-    marker_line_color='black',  # 邊界線變黑
-    selector=dict(type='choroplethmapbox')
-)
-
-# 加縣市名稱標籤（可選，如果想看縣市名）
-fig_map.add_scattermapbox(
-    lat=map_data['lat'],
-    lon=map_data['lon'],
-    mode='text',
-    text=map_data['district'],
-    textfont=dict(size=10, color='black'),
-    hoverinfo='none'
-)
-
-fig_map.update_layout(
-    margin={"r":0,"t":30,"l":0,"b":0},
-    height=700,
-    title="台灣選區捐款熱圖（僅顯示台灣領土）"
-)
         map_data,
         geojson=taiwan_geojson,
         locations='district',
