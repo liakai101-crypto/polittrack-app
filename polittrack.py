@@ -6,102 +6,21 @@ from io import BytesIO
 import datetime
 from fpdf import FPDF
 
-# ==================== 頁面設定 ====================
+# ==================== 頁面設定與美化 ====================
 st.set_page_config(
     page_title="Taiwan PoliTrack - 政治透明平台",
     page_icon="https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Flag_of_the_Republic_of_China.svg/32px-Flag_of_the_Republic_of_China.svg.png",
     layout="wide"
 )
 
-# ==================== 極深色科技風格 CSS ====================
 st.markdown("""
 <style>
-    /* 整體背景 - 極深黑藍漸層，更接近純黑宇宙感 */
-    .stApp {
-        background: linear-gradient(135deg, #000814, #001233, #000b1e);
-        color: #d0e0ff;
-        background-attachment: fixed;
-    }
-
-    /* 側邊欄 - 幾乎全黑半透明 */
-    section[data-testid="stSidebar"] > div:first-child {
-        background: rgba(5, 5, 20, 0.92);
-        backdrop-filter: blur(12px);
-        border-right: 1px solid rgba(0, 200, 255, 0.12);
-    }
-
-    /* 標題 - 亮藍 + 強發光 */
-    h1, h2, h3 {
-        color: #00d4ff !important;
-        text-shadow: 0 0 15px rgba(0, 212, 255, 0.7);
-        letter-spacing: 1px;
-    }
-
-    /* 一般文字 */
-    p, div, span, label, li {
-        color: #c0d0ff !important;
-    }
-
-    /* 按鈕 - 深藍綠發光 */
-    .stButton > button {
-        background: linear-gradient(45deg, #006d77, #118ab2);
-        color: #f0f8ff;
-        border: none;
-        border-radius: 8px;
-        padding: 12px 24px;
-        box-shadow: 0 0 20px rgba(0, 109, 119, 0.7);
-        transition: all 0.4s ease;
-    }
-    .stButton > button:hover {
-        box-shadow: 0 0 35px rgba(0, 212, 255, 1);
-        transform: translateY(-3px) scale(1.03);
-    }
-
-    /* 輸入框、選擇器 */
-    .stTextInput > div > div > input,
-    .stSelectbox > div > div > select,
-    .stNumberInput > div > div > input {
-        background: rgba(10, 10, 30, 0.85);
-        color: #e0f0ff;
-        border: 1px solid #00d4ff44;
-        border-radius: 6px;
-    }
-
-    /* 分頁標籤 - 深色半透 */
-    .stTabs [data-baseweb="tab-list"] {
-        background: rgba(10, 10, 30, 0.8);
-        border-radius: 12px;
-        border: 1px solid #00d4ff22;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color: #90b0ff;
-    }
-    .stTabs [aria-selected="true"] {
-        color: #00d4ff !important;
-        background: rgba(0, 212, 255, 0.18);
-        border-radius: 8px 8px 0 0;
-    }
-
-    /* 表格 */
-    .stDataFrame {
-        background: rgba(15, 15, 40, 0.7);
-        border: 1px solid #00d4ff33;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    /* 地圖容器 */
-    .stPlotlyChart {
-        background: rgba(5, 5, 25, 0.75);
-        border-radius: 12px;
-        padding: 12px;
-        box-shadow: 0 0 30px rgba(0, 212, 255, 0.25);
-    }
-
-    /* 移除不必要的元素邊框 */
-    .block-container {
-        padding-top: 1rem !important;
-    }
+    .stApp { background-color: #f0f8ff; }
+    .css-1d391kg { background-color: #e0f7fa; }
+    h1, h2, h3 { color: #00695c; }
+    .stButton > button { background-color: #26a69a; color: white; border: none; }
+    .stButton > button:hover { background-color: #00897b; }
+    .stSidebar .sidebar-content { background-color: #e0f7fa; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -204,31 +123,40 @@ def add_warning(row):
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
 
-# ==================== 假資料基礎 ====================
+# ==================== 假資料（作為基礎） ====================
 fake_map_data = pd.DataFrame({
     'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
     'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
     'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
     'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨'],
-    'donation_total': [0] * 22
+    'donation_total': [0] * 22  # 先設 0，後面會被真實資料覆蓋
 })
 
-# ==================== 真實資料整合 ====================
+# ==================== 真實資料整合（最穩健版） ====================
 real_map_data = fake_map_data.copy()
 
-if 'district' in df.columns and 'donation_total' in df.columns:
-    df_clean = df[df['district'].notna() & df['donation_total'].notna()]
-    if not df_clean.empty:
-        totals = df_clean.groupby('district')['donation_total'].sum().reset_index(name='real_total')
+# 只有當 CSV 有 district 欄位時才計算真實總額
+if 'district' in df.columns:
+    # 清理資料：移除空值
+    df_clean = df[df['district'].notna()]
+    
+    if 'donation_total' in df_clean.columns:
+        # 計算每個縣市總捐款
+        totals = df_clean.groupby('district')['donation_total'].sum().reset_index(name='calculated_total')
+        
+        # 合併到地圖資料
         real_map_data = real_map_data.merge(totals, on='district', how='left')
-        real_map_data['donation_total'] = real_map_data['real_total'].fillna(0)
-        real_map_data = real_map_data.drop(columns=['real_total'], errors='ignore')
+        
+        # 用計算出的總額覆蓋（如果有值）
+        real_map_data['donation_total'] = real_map_data['calculated_total'].fillna(real_map_data['donation_total'])
+        real_map_data = real_map_data.drop(columns=['calculated_total'], errors='ignore')
 
+# 確保所有必要欄位存在
 real_map_data['lat'] = real_map_data['lat'].fillna(23.7)
 real_map_data['lon'] = real_map_data['lon'].fillna(121.0)
 real_map_data['main_party'] = real_map_data['main_party'].fillna('未知')
 
-# ==================== 分頁 ====================
+# ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
 
 with tab1:
@@ -267,7 +195,7 @@ with tab2:
     st.plotly_chart(fig_rank)
 
 with tab3:
-    st.header('選區金流地圖（真實資料版）')
+    st.header('選區金流地圖（僅台灣領土）')
     
     st.write("地圖資料筆數：", len(real_map_data))
 
@@ -295,12 +223,12 @@ with tab3:
         zoom=7.8,
         center={"lat": 23.58, "lon": 120.98},
         opacity=0.85,
-        mapbox_style="dark"  # 深色地圖風格，與整體黑色主題搭配
+        mapbox_style="carto-positron"
     )
 
     fig_map.update_traces(
         marker_line_width=1.2,
-        marker_line_color='#00d4ff44',
+        marker_line_color='#333333',
         selector=dict(type='choroplethmapbox')
     )
 
@@ -309,17 +237,14 @@ with tab3:
         lon=real_map_data['lon'],
         mode='text',
         text=real_map_data['district'] + '<br>' + (real_map_data['donation_total'] / 1000000).round(0).astype(int).astype(str) + 'M',
-        textfont=dict(size=10, color='#00d4ff'),
+        textfont=dict(size=10, color='black', family="Arial"),
         hoverinfo='none'
     )
 
     fig_map.update_layout(
         margin={"r":0,"t":40,"l":0,"b":0},
         height=700,
-        title="台灣選區捐款熱圖（真實資料版）",
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        font_color='#d0e0ff'
+        title="台灣選區捐款熱圖（真實資料版）"
     )
 
     st.plotly_chart(fig_map, use_container_width=True)
