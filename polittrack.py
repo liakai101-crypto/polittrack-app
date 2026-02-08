@@ -131,15 +131,13 @@ fake_map_data = pd.DataFrame({
     'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
 })
 
-# ==================== 真實資料整合（安全版，排除全國） ====================
+# ==================== 真實資料整合（排除全國） ====================
 real_map_data = fake_map_data.copy()
 
 if 'district' in df.columns and 'donation_total' in df.columns:
-    # 排除「全國」
     df_local = df[df['district'] != '全國'].copy()
     
     if not df_local.empty:
-        # 聚合計算
         agg_df = df_local.groupby('district').agg(
             donation_total=('donation_total', 'sum'),
             candidate_count=('name', 'nunique'),
@@ -148,25 +146,19 @@ if 'district' in df.columns and 'donation_total' in df.columns:
             main_year=('donation_year', lambda x: x.mode().iloc[0] if not x.mode().empty else '未知')
         ).reset_index()
         
-        # 只更新有匹配的行
-        for idx, row in agg_df.iterrows():
-            dist = row['district']
-            if dist in real_map_data['district'].values:
-                mask = real_map_data['district'] == dist
-                real_map_data.loc[mask, 'donation_total'] = row['donation_total']
-                real_map_data.loc[mask, 'candidate_count'] = row['candidate_count']
-                real_map_data.loc[mask, 'avg_donation'] = row['avg_donation']
-                real_map_data.loc[mask, 'max_donation'] = row['max_donation']
-                real_map_data.loc[mask, 'main_year'] = row['main_year']
+        real_map_data = real_map_data.merge(agg_df, on='district', how='left')
+        
+        # 安全填補 NaN
+        real_map_data['donation_total'] = real_map_data['donation_total_y'].fillna(real_map_data['donation_total_x'])
+        real_map_data['candidate_count'] = real_map_data['candidate_count'].fillna(0).astype(int)
+        real_map_data['avg_donation'] = real_map_data['avg_donation'].fillna(0)
+        real_map_data['max_donation'] = real_map_data['max_donation'].fillna(0)
+        real_map_data['main_year'] = real_map_data['main_year'].fillna('未知')
+        
+        real_map_data = real_map_data.drop(columns=['donation_total_x', 'donation_total_y'], errors='ignore')
 
-# 補齊缺失欄位
-real_map_data['lat'] = real_map_data['lat'].fillna(23.7)
-real_map_data['lon'] = real_map_data['lon'].fillna(121.0)
-real_map_data['main_party'] = real_map_data['main_party'].fillna('未知')
-real_map_data['candidate_count'] = real_map_data['candidate_count'].fillna(0).astype(int)
-real_map_data['avg_donation'] = real_map_data['avg_donation'].fillna(0)
-real_map_data['max_donation'] = real_map_data['max_donation'].fillna(0)
-real_map_data['main_year'] = real_map_data['main_year'].fillna('未知')
+# 最終防呆：確保 donation_total 是數字，沒有 NaN
+real_map_data['donation_total'] = pd.to_numeric(real_map_data['donation_total'], errors='coerce').fillna(0)
 
 # ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
@@ -248,11 +240,15 @@ with tab3:
         selector=dict(type='choroplethmapbox')
     )
 
+    # 修正：先填補 NaN 再做 astype(int)
+    label_amount = (real_map_data['donation_total'].fillna(0) / 1000000).round(0).astype(int).astype(str) + 'M'
+    label_text = real_map_data['district'] + '<br>' + label_amount
+
     fig_map.add_scattermapbox(
         lat=real_map_data['lat'],
         lon=real_map_data['lon'],
         mode='text',
-        text=real_map_data['district'] + '<br>' + (real_map_data['donation_total'] / 1000000).round(0).astype(int).astype(str) + 'M',
+        text=label_text,
         textfont=dict(size=10, color='black', family="Arial"),
         hoverinfo='none'
     )
