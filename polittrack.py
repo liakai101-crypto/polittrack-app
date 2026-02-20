@@ -16,18 +16,27 @@ st.set_page_config(
 st.markdown("""
 <style>
     .stApp { background-color: #f0f8ff; }
-    .css-1d391kg { background-color: #e0f7fa; }
-    h1, h2, h3 { color: #00695c; }
-    .stButton > button { background-color: #26a69a; color: white; border: none; }
-    .stButton > button:hover { background-color: #00897b; }
-    .stSidebar .sidebar-content { background-color: #e0f7fa; }
+    [data-testid="stHeader"] { background-color: rgba(255,255,255,0); }
+    h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 3em; }
+    .search-box { max-width: 600px; margin: auto; }
+    .media-logos { text-align: center; margin-top: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
-# 加 logo
-st.image("logo.png", width=80)
+# 加背景圖
+st.markdown("""
+<div style="background-image: url('background.png'); background-size: cover; padding: 100px 0; text-align: center; color: white;">
+<h1>NeoFormosa</h1>
+<p style="font-size: 1.5em;">Your home for money in politics</p>
+<div class="search-box">
+""" + st.text_input("Find financial data on elections", key="main_search")._html + """
+<button>開始搜尋</button>
+</div>
+</div>
+""", unsafe_allow_html=True)
 
-st.title('NeoFormosa - 台灣政治透明平台')
+# 加媒體 logo
+st.markdown('<div class="media-logos"><img src="media_logos.png" width="400"></div>', unsafe_allow_html=True)
 
 # ==================== 願景宣言 ====================
 st.markdown("""
@@ -37,7 +46,7 @@ st.markdown("""
 從美麗的福爾摩沙，到最乾淨的國家——這一天，由我們一起創造。
 """)
 
-# ==================== Slogan 輪播 ====================
+# Slogan
 st.markdown("""
 **Slogan**  
 - NeoFormosa — Taiwan’s Path to Global Integrity No.1  
@@ -45,7 +54,7 @@ st.markdown("""
 - NeoFormosa — From Beautiful Island to Cleanest Nation
 """)
 
-# 中立聲明 + 資料來源連結
+# 中立聲明
 st.markdown("""
 **平台中立聲明**  
 本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
@@ -65,7 +74,6 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 def login():
-    st.title("NeoFormosa 登入")
     username = st.text_input("使用者名稱")
     password = st.text_input("密碼", type="password")
     if st.button("登入"):
@@ -112,7 +120,6 @@ sort_by = st.sidebar.selectbox("排序方式", ["無排序", "捐款金額降序
 if st.sidebar.button("重置篩選"):
     st.rerun()
 
-# 過濾資料
 filtered_df = df.copy()
 if search_name:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
@@ -126,7 +133,6 @@ filtered_df = filtered_df[(filtered_df['donation_total'] >= search_donation_min)
 if search_area != "全部":
     filtered_df = filtered_df[filtered_df['district'] == search_area]
 
-# 排序
 if sort_by == "捐款金額降序":
     filtered_df = filtered_df.sort_values('donation_total', ascending=False)
 elif sort_by == "財產增長率降序":
@@ -136,7 +142,6 @@ elif sort_by == "提案數降序":
     filtered_df['proposal_count'] = filtered_df['legislation_record'].str.extract('(\d+)').astype(float)
     filtered_df = filtered_df.sort_values('proposal_count', ascending=False)
 
-# 加捐款異常警示
 def add_warning(row):
     if row.get('donation_amount', 0) > 10000000 and '企業' in str(row.get('top_donor', '')) and '法案' in str(row.get('association', '')):
         return "⚠️ 異常捐款警示：金額高且議題高度相關"
@@ -196,7 +201,6 @@ with tab3:
     
     st.write("地圖資料筆數：", len(map_data))
 
-    # 載入 GeoJSON
     try:
         with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
             taiwan_geojson = json.load(f)
