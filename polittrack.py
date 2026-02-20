@@ -13,47 +13,58 @@ st.set_page_config(
     layout="wide"
 )
 
-# 整體科技藍風格
+# 科技藍風格 CSS
 st.markdown("""
 <style>
     .stApp { background-color: #f0f8ff; }
-    h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 3.5em; margin-bottom: 0.2em; }
-    .hero { background: linear-gradient(rgba(10, 132, 255, 0.1), rgba(0, 212, 255, 0.05)), url('background.png') center/cover no-repeat; padding: 120px 0; text-align: center; color: white; border-radius: 0 0 20px 20px; }
-    .search-container { max-width: 700px; margin: 40px auto; background: rgba(255,255,255,0.95); padding: 35px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
-    .search-input > div > div > input { font-size: 1.2em; padding: 15px; border-radius: 10px; }
-    .search-button { background: #0A84FF !important; color: white !important; font-size: 1.3em !important; padding: 15px 50px !important; border-radius: 10px !important; margin-top: 20px !important; border: none !important; }
-    .slogan { font-size: 1.4em; margin: 20px 0; color: #e0f7ff; }
-    .vision { background: #ffffff; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin: 30px auto; max-width: 900px; }
+    h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 4em; margin: 0; }
+    .hero { background: linear-gradient(rgba(10, 132, 255, 0.15), rgba(0, 212, 255, 0.1)), url('background.png') center/cover no-repeat; padding: 150px 0; text-align: center; color: white; border-radius: 0 0 30px 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .search-form { max-width: 800px; margin: 50px auto; background: rgba(255,255,255,0.92); padding: 40px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+    .search-input > div > div > input { font-size: 1.4em; padding: 18px; border-radius: 12px; border: 2px solid #0A84FF; }
+    .search-button { background: #0A84FF !important; color: white !important; font-size: 1.4em !important; padding: 18px 60px !important; border-radius: 12px !important; margin-top: 25px !important; border: none !important; cursor: pointer; width: 100%; }
+    .vision { background: white; padding: 35px; border-radius: 20px; box-shadow: 0 5px 25px rgba(0,0,0,0.08); margin: 40px auto; max-width: 1000px; text-align: center; }
+    .slogan { font-size: 1.5em; color: #e0f7ff; margin: 20px 0; font-weight: 300; }
 </style>
 """, unsafe_allow_html=True)
 
-# 英雄區（背景 + 標題 + slogan + 搜尋框）
+# 英雄區：背景 + 標題 + slogan + 搜尋表單
 st.markdown("""
 <div class="hero">
   <h1>NeoFormosa</h1>
   <p class="slogan">Taiwan’s Path to Global Integrity No.1</p>
-  
-  <div class="search-container">
-    <div style="font-size: 1.4em; color: #333; margin-bottom: 20px;">Find financial data on elections</div>
-    """ + st.text_input("", placeholder="輸入姓名、企業、縣市或關鍵字...", key="main_search", label_visibility="collapsed")._repr_html_() + """
-    <button class="search-button">開始搜尋</button>
-  </div>
 </div>
 """, unsafe_allow_html=True)
+
+# 搜尋表單（用 form 包裝，更專業）
+with st.form(key="main_search_form", clear_on_submit=False):
+    st.markdown('<div class="search-form">', unsafe_allow_html=True)
+    
+    col_search, col_button = st.columns([4, 1])
+    with col_search:
+        search_query = st.text_input(
+            "Find financial data on elections",
+            placeholder="輸入姓名、企業、縣市或關鍵字...",
+            key="main_search",
+            label_visibility="collapsed"
+        )
+    
+    submitted = st.form_submit_button("開始搜尋", use_container_width=True, type="primary")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # 願景宣言
 st.markdown("""
 <div class="vision">
-  <h2 style="color: #0A84FF; text-align: center;">NeoFormosa 願景</h2>
-  <p style="font-size: 1.2em; line-height: 1.8; text-align: center;">
+  <h2 style="color: #0A84FF; margin-bottom: 20px;">NeoFormosa 願景</h2>
+  <p style="font-size: 1.25em; line-height: 1.8;">
     我們相信，台灣能成為全世界清廉印象指數 (CPI) 第一的國家。<br>
-    透過 AI 與公開資料的透明力量，讓每一位公民都能輕鬆監督政治金流、財產變動與政策關聯。<br>
+    透過 AI 與公開資料的透明力量，讓每一位公民都能輕鬆監督政治金流、財產變動與政策關聯。<br><br>
     <strong>從美麗的福爾摩沙，到最乾淨的國家——這一天，由我們一起創造。</strong>
   </p>
 </div>
 """, unsafe_allow_html=True)
 
-# 中立聲明 + 來源連結
+# 中立聲明 + 來源
 st.markdown("""
 **平台中立聲明**  
 本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
@@ -148,15 +159,6 @@ def add_warning(row):
     return ""
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
-
-# ==================== 選區金流地圖資料 ====================
-map_data = pd.DataFrame({
-    'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
-    'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
-    'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
-    'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
-    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
-})
 
 # ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
