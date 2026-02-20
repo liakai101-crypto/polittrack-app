@@ -13,25 +13,26 @@ st.set_page_config(
     layout="wide"
 )
 
-# 科技藍風格 CSS + Raw 背景圖網址
+# 科技藍風格 CSS + Raw GitHub 背景圖網址
 st.markdown("""
 <style>
     .stApp { background-color: #f0f8ff; }
-    h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 4em; margin: 0; }
+    h1 { color: white; font-family: 'Inter', sans-serif; font-size: 4.5em; margin: 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.7); }
     .hero { 
-        background: linear-gradient(rgba(10, 132, 255, 0.15), rgba(0, 212, 255, 0.1)), 
+        background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.35)), 
                     url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png') center/cover no-repeat; 
-        padding: 150px 0; 
+        padding: 180px 0; 
         text-align: center; 
         color: white; 
         border-radius: 0 0 30px 30px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
     }
-    .search-form { max-width: 800px; margin: 50px auto; background: rgba(255,255,255,0.92); padding: 40px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
-    .search-input > div > div > input { font-size: 1.4em; padding: 18px; border-radius: 12px; border: 2px solid #0A84FF; }
-    .search-button { background: #0A84FF !important; color: white !important; font-size: 1.4em !important; padding: 18px 60px !important; border-radius: 12px !important; margin-top: 25px !important; border: none !important; cursor: pointer; width: 100%; }
-    .vision { background: white; padding: 35px; border-radius: 20px; box-shadow: 0 5px 25px rgba(0,0,0,0.08); margin: 40px auto; max-width: 1000px; text-align: center; }
-    .slogan { font-size: 1.5em; color: #e0f7ff; margin: 20px 0; font-weight: 300; }
+    .slogan { font-size: 1.8em; color: #e0f7ff; margin: 25px 0; font-weight: 300; text-shadow: 1px 1px 5px rgba(0,0,0,0.6); }
+    .search-form { max-width: 800px; margin: 60px auto; background: rgba(255,255,255,0.95); padding: 45px; border-radius: 25px; box-shadow: 0 15px 50px rgba(0,0,0,0.25); }
+    .search-input > div > div > input { font-size: 1.5em; padding: 20px; border-radius: 15px; border: 2px solid #0A84FF; }
+    .search-button { background: #0A84FF !important; color: white !important; font-size: 1.5em !important; padding: 20px 80px !important; border-radius: 15px !important; margin-top: 30px !important; border: none !important; cursor: pointer; width: 100%; transition: background 0.3s; }
+    .search-button:hover { background: #0066cc !important; }
+    .vision { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 5px 30px rgba(0,0,0,0.1); margin: 50px auto; max-width: 1100px; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -43,7 +44,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 搜尋表單（用 form 包裝，更專業）
+# 搜尋表單
 with st.form(key="main_search_form", clear_on_submit=False):
     st.markdown('<div class="search-form">', unsafe_allow_html=True)
     
