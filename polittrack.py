@@ -14,42 +14,43 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 最終修復 CSS：加大側邊欄寬度 + 中文字體防重疊 + 背景圖強制載入
+# 最終修復 CSS：解決重疊 + 強制背景圖載入
 st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-    * { font-family: 'Noto Sans TC', 'Inter', sans-serif !important; }
+    * { font-family: 'Noto Sans TC', 'Inter', sans-serif !important; box-sizing: border-box; }
     .stApp { background-color: #f8f9fa; }
     [data-testid="stSidebar"] { 
         background-color: #ffffff !important; 
-        border-right: 1px solid #e0e0e0; 
-        padding: 35px 20px !important; 
-        min-width: 340px !important; 
-        max-width: 340px !important; 
+        border-right: 1px solid #e0e0e0 !important; 
+        padding: 40px 25px !important; 
+        min-width: 360px !important; 
+        max-width: 360px !important; 
+        overflow-y: auto !important; 
     }
-    .sidebar-title { font-size: 1.5em; font-weight: 700; color: #0A84FF; margin-bottom: 25px; }
+    .sidebar-title { font-size: 1.5em; font-weight: 700; color: #0A84FF; margin-bottom: 30px; }
     .stButton > button { 
-        background-color: #0A84FF; 
-        color: white; 
-        border-radius: 12px; 
-        padding: 14px 28px; 
-        font-weight: 600; 
-        border: none; 
-        transition: all 0.3s; 
-        width: 100%; 
-        margin-top: 25px; 
+        background-color: #0A84FF !important; 
+        color: white !important; 
+        border-radius: 12px !important; 
+        padding: 14px 28px !important; 
+        font-weight: 600 !important; 
+        border: none !important; 
+        transition: all 0.3s !important; 
+        width: 100% !important; 
+        margin-top: 30px !important; 
     }
-    .stButton > button:hover { background-color: #0066cc; transform: translateY(-3px); }
+    .stButton > button:hover { background-color: #0066cc !important; transform: translateY(-3px) !important; }
     .stExpander { 
-        border: 1px solid #e0e0e0; 
-        border-radius: 12px; 
-        background: white; 
-        margin: 30px 0 !important; 
+        border: 1px solid #e0e0e0 !important; 
+        border-radius: 12px !important; 
+        background: white !important; 
+        margin: 35px 0 !important; 
     }
-    .stExpander > div > div { padding: 25px !important; }
+    .stExpander > div > div { padding: 25px !important; margin-bottom: 20px !important; }
     .hero { 
         background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.45)), 
-                    url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png') center/cover no-repeat !important; 
+                    url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png?v=1') center/cover no-repeat !important; 
         min-height: 85vh; 
         display: flex; 
         flex-direction: column; 
@@ -57,12 +58,12 @@ st.markdown("""
         align-items: center; 
         color: white; 
         text-align: center; 
-        padding: 0 20px; 
-        background-color: #0A84FF; /* fallback 如果圖載不進來 */
+        padding: 0 30px; 
+        background-color: #0A84FF; /* fallback */
     }
     .card { 
         background: white; 
-        padding: 28px; 
+        padding: 30px; 
         border-radius: 16px; 
         box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
         margin-bottom: 30px; 
@@ -70,14 +71,11 @@ st.markdown("""
     }
     .card h3 { color: #0A84FF; margin-bottom: 18px; font-size: 1.7em; }
     .card p { font-size: 1.5em; font-weight: 600; color: #333; margin: 0; }
-    .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; padding: 35px 0; }
-    .media-logos { text-align: center; margin: 50px 0; }
-    .media-logos img { height: 65px; margin: 0 50px; opacity: 0.9; transition: opacity 0.3s; }
-    .media-logos img:hover { opacity: 1; }
+    .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; padding: 40px 0; }
 </style>
 """, unsafe_allow_html=True)
 
-# 登入功能（簡潔版）
+# 登入功能
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
@@ -97,7 +95,7 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ==================== 讀取資料 ====================
+# 讀取資料
 with st.spinner("載入資料中..."):
     @st.cache_data
     def load_data():
@@ -113,14 +111,14 @@ with st.spinner("載入資料中..."):
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.success(f"資料最後更新：{last_update}")
 
-# ==================== 側邊欄 - 乾淨版（加大間距） ====================
+# 側邊欄 - 最終乾淨版（加大間距）
 st.sidebar.markdown('<div class="sidebar-title">快速篩選</div>', unsafe_allow_html=True)
 
 search_name = st.sidebar.text_input("姓名或關鍵字", key="sidebar_name")
-st.sidebar.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)  # 強制留白
+st.sidebar.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True)  # 強制留白
 
 search_party = st.sidebar.selectbox("黨籍", ["全部"] + list(df['party'].unique()) if 'party' in df else ["全部"], key="sidebar_party")
-st.sidebar.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
 with st.sidebar.expander("進階篩選", expanded=False):
     search_donor_type = st.selectbox("捐款來源", ["全部", "企業", "個人", "團體"], key="sidebar_donor")
@@ -129,7 +127,7 @@ with st.sidebar.expander("進階篩選", expanded=False):
     search_area = st.selectbox("選區", ["全部"] + list(df['district'].unique()) if 'district' in df else ["全部"], key="sidebar_area")
     sort_by = st.selectbox("排序方式", ["無排序", "捐款金額降序", "財產增長率降序"], key="sidebar_sort")
 
-st.sidebar.markdown('<div style="border-top: 1px solid #e0e0e0; margin: 30px 0;"></div>', unsafe_allow_html=True)
+st.sidebar.markdown('<div style="border-top: 1px solid #e0e0e0; margin: 40px 0;"></div>', unsafe_allow_html=True)
 
 if st.sidebar.button("重置篩選", use_container_width=True):
     st.rerun()
@@ -159,7 +157,7 @@ elif sort_by == "財產增長率降序":
 
 filtered_df['warning'] = filtered_df.apply(lambda row: "⚠️ 異常" if row.get('donation_amount', 0) > 10000000 else "", axis=1)
 
-# ==================== 儀表板總覽 ====================
+# 儀表板總覽
 st.title("儀表板總覽")
 
 cols = st.columns(4)
@@ -179,7 +177,7 @@ with cols[3]:
     candidates = filtered_df['name'].nunique() if 'name' in filtered_df.columns else 0
     st.markdown(f'<div class="card"><h3>候選人數</h3><p>{candidates}</p></div>', unsafe_allow_html=True)
 
-# ==================== 主內容分頁 ====================
+# 主內容分頁
 tab1, tab2, tab3, tab4 = st.tabs(["資料查詢", "大額排行", "選區地圖", "完整資料"])
 
 with tab1:
