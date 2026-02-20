@@ -14,43 +14,43 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 高級風格 CSS（加大側邊欄寬度、間距、背景圖）
+# 最終修復 CSS：加大側邊欄寬度 + 中文字體防重疊 + 背景圖強制載入
 st.markdown("""
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-    * { font-family: 'Inter', sans-serif !important; }
+    * { font-family: 'Noto Sans TC', 'Inter', sans-serif !important; }
     .stApp { background-color: #f8f9fa; }
     [data-testid="stSidebar"] { 
-        background-color: #ffffff; 
+        background-color: #ffffff !important; 
         border-right: 1px solid #e0e0e0; 
-        padding: 30px 20px; 
-        min-width: 320px !important; 
-        max-width: 320px !important; 
+        padding: 35px 20px !important; 
+        min-width: 340px !important; 
+        max-width: 340px !important; 
     }
-    .sidebar-title { font-size: 1.4em; font-weight: 600; color: #0A84FF; margin-bottom: 25px; }
+    .sidebar-title { font-size: 1.5em; font-weight: 700; color: #0A84FF; margin-bottom: 25px; }
     .stButton > button { 
         background-color: #0A84FF; 
         color: white; 
-        border-radius: 10px; 
-        padding: 12px 24px; 
-        font-weight: 500; 
+        border-radius: 12px; 
+        padding: 14px 28px; 
+        font-weight: 600; 
         border: none; 
         transition: all 0.3s; 
         width: 100%; 
-        margin-top: 20px; 
+        margin-top: 25px; 
     }
-    .stButton > button:hover { background-color: #0066cc; transform: translateY(-2px); }
+    .stButton > button:hover { background-color: #0066cc; transform: translateY(-3px); }
     .stExpander { 
         border: 1px solid #e0e0e0; 
         border-radius: 12px; 
         background: white; 
-        margin: 25px 0; 
+        margin: 30px 0 !important; 
     }
-    .stExpander > div > div { padding: 20px; }
+    .stExpander > div > div { padding: 25px !important; }
     .hero { 
-        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), 
-                    url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png') center/cover no-repeat; 
-        min-height: 80vh; 
+        background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.45)), 
+                    url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png') center/cover no-repeat !important; 
+        min-height: 85vh; 
         display: flex; 
         flex-direction: column; 
         justify-content: center; 
@@ -58,23 +58,26 @@ st.markdown("""
         color: white; 
         text-align: center; 
         padding: 0 20px; 
-        background-color: #0A84FF; /* fallback 顏色 */
+        background-color: #0A84FF; /* fallback 如果圖載不進來 */
     }
     .card { 
         background: white; 
-        padding: 25px; 
+        padding: 28px; 
         border-radius: 16px; 
-        box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
-        margin-bottom: 25px; 
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
+        margin-bottom: 30px; 
         text-align: center; 
     }
-    .card h3 { color: #0A84FF; margin-bottom: 15px; font-size: 1.6em; }
-    .card p { font-size: 1.4em; font-weight: 600; color: #333; margin: 0; }
-    .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; padding: 30px 0; }
+    .card h3 { color: #0A84FF; margin-bottom: 18px; font-size: 1.7em; }
+    .card p { font-size: 1.5em; font-weight: 600; color: #333; margin: 0; }
+    .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; padding: 35px 0; }
+    .media-logos { text-align: center; margin: 50px 0; }
+    .media-logos img { height: 65px; margin: 0 50px; opacity: 0.9; transition: opacity 0.3s; }
+    .media-logos img:hover { opacity: 1; }
 </style>
 """, unsafe_allow_html=True)
 
-# 登入功能
+# 登入功能（簡潔版）
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
@@ -110,11 +113,14 @@ with st.spinner("載入資料中..."):
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.success(f"資料最後更新：{last_update}")
 
-# ==================== 側邊欄 - 乾淨版 ====================
+# ==================== 側邊欄 - 乾淨版（加大間距） ====================
 st.sidebar.markdown('<div class="sidebar-title">快速篩選</div>', unsafe_allow_html=True)
 
 search_name = st.sidebar.text_input("姓名或關鍵字", key="sidebar_name")
+st.sidebar.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)  # 強制留白
+
 search_party = st.sidebar.selectbox("黨籍", ["全部"] + list(df['party'].unique()) if 'party' in df else ["全部"], key="sidebar_party")
+st.sidebar.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
 
 with st.sidebar.expander("進階篩選", expanded=False):
     search_donor_type = st.selectbox("捐款來源", ["全部", "企業", "個人", "團體"], key="sidebar_donor")
@@ -123,7 +129,7 @@ with st.sidebar.expander("進階篩選", expanded=False):
     search_area = st.selectbox("選區", ["全部"] + list(df['district'].unique()) if 'district' in df else ["全部"], key="sidebar_area")
     sort_by = st.selectbox("排序方式", ["無排序", "捐款金額降序", "財產增長率降序"], key="sidebar_sort")
 
-st.sidebar.markdown('<div style="border-top: 1px solid #e0e0e0; margin: 25px 0;"></div>', unsafe_allow_html=True)
+st.sidebar.markdown('<div style="border-top: 1px solid #e0e0e0; margin: 30px 0;"></div>', unsafe_allow_html=True)
 
 if st.sidebar.button("重置篩選", use_container_width=True):
     st.rerun()
@@ -151,7 +157,6 @@ elif sort_by == "財產增長率降序":
     filtered_df['growth_rate'] = (filtered_df['assets_2025'] - filtered_df['assets_2024']) / filtered_df['assets_2024'] * 100
     filtered_df = filtered_df.sort_values('growth_rate', ascending=False)
 
-# 防呆：warning 欄位
 filtered_df['warning'] = filtered_df.apply(lambda row: "⚠️ 異常" if row.get('donation_amount', 0) > 10000000 else "", axis=1)
 
 # ==================== 儀表板總覽 ====================
@@ -196,7 +201,7 @@ with tab2:
 with tab3:
     st.header("選區金流地圖")
     
-    # 明確定義 map_data（解決 NameError）
+    # 明確定義 map_data
     map_data = pd.DataFrame({
         'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
         'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
