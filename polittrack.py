@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 高級統一風格 CSS（解決重疊 + 美化）
+# 高級風格 CSS（加大側邊欄寬度、間距、背景圖）
 st.markdown("""
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -23,10 +23,11 @@ st.markdown("""
     [data-testid="stSidebar"] { 
         background-color: #ffffff; 
         border-right: 1px solid #e0e0e0; 
-        padding: 25px 15px; 
-        min-width: 300px !important; 
+        padding: 30px 20px; 
+        min-width: 320px !important; 
+        max-width: 320px !important; 
     }
-    .sidebar-title { font-size: 1.4em; font-weight: 600; color: #0A84FF; margin-bottom: 20px; }
+    .sidebar-title { font-size: 1.4em; font-weight: 600; color: #0A84FF; margin-bottom: 25px; }
     .stButton > button { 
         background-color: #0A84FF; 
         color: white; 
@@ -36,16 +37,29 @@ st.markdown("""
         border: none; 
         transition: all 0.3s; 
         width: 100%; 
-        margin-top: 15px; 
+        margin-top: 20px; 
     }
     .stButton > button:hover { background-color: #0066cc; transform: translateY(-2px); }
     .stExpander { 
         border: 1px solid #e0e0e0; 
         border-radius: 12px; 
         background: white; 
-        margin: 20px 0; 
+        margin: 25px 0; 
     }
-    .stExpander > div > div { padding: 15px; }
+    .stExpander > div > div { padding: 20px; }
+    .hero { 
+        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), 
+                    url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png') center/cover no-repeat; 
+        min-height: 80vh; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: center; 
+        align-items: center; 
+        color: white; 
+        text-align: center; 
+        padding: 0 20px; 
+        background-color: #0A84FF; /* fallback 顏色 */
+    }
     .card { 
         background: white; 
         padding: 25px; 
@@ -65,7 +79,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 def login():
-    st.markdown("<div style='text-align:center; padding:100px 20px;'><h1>NeoFormosa</h1><p>Taiwan’s Path to Global Integrity No.1</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='hero'><h1>NeoFormosa</h1><p>Taiwan’s Path to Global Integrity No.1</p></div>", unsafe_allow_html=True)
     username = st.text_input("使用者名稱")
     password = st.text_input("密碼", type="password")
     if st.button("登入", use_container_width=True):
@@ -96,7 +110,7 @@ with st.spinner("載入資料中..."):
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.success(f"資料最後更新：{last_update}")
 
-# ==================== 側邊欄 - 極簡版 ====================
+# ==================== 側邊欄 - 乾淨版 ====================
 st.sidebar.markdown('<div class="sidebar-title">快速篩選</div>', unsafe_allow_html=True)
 
 search_name = st.sidebar.text_input("姓名或關鍵字", key="sidebar_name")
@@ -109,7 +123,7 @@ with st.sidebar.expander("進階篩選", expanded=False):
     search_area = st.selectbox("選區", ["全部"] + list(df['district'].unique()) if 'district' in df else ["全部"], key="sidebar_area")
     sort_by = st.selectbox("排序方式", ["無排序", "捐款金額降序", "財產增長率降序"], key="sidebar_sort")
 
-st.sidebar.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+st.sidebar.markdown('<div style="border-top: 1px solid #e0e0e0; margin: 25px 0;"></div>', unsafe_allow_html=True)
 
 if st.sidebar.button("重置篩選", use_container_width=True):
     st.rerun()
@@ -137,7 +151,7 @@ elif sort_by == "財產增長率降序":
     filtered_df['growth_rate'] = (filtered_df['assets_2025'] - filtered_df['assets_2024']) / filtered_df['assets_2024'] * 100
     filtered_df = filtered_df.sort_values('growth_rate', ascending=False)
 
-# 防呆：確保 warning 欄位存在
+# 防呆：warning 欄位
 filtered_df['warning'] = filtered_df.apply(lambda row: "⚠️ 異常" if row.get('donation_amount', 0) > 10000000 else "", axis=1)
 
 # ==================== 儀表板總覽 ====================
@@ -182,7 +196,7 @@ with tab2:
 with tab3:
     st.header("選區金流地圖")
     
-    # 明確定義 map_data（避免 NameError）
+    # 明確定義 map_data（解決 NameError）
     map_data = pd.DataFrame({
         'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
         'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
@@ -196,7 +210,7 @@ with tab3:
     try:
         with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
             taiwan_geojson = json.load(f)
-        st.write("GeoJSON 載入成功！開始繪製地圖...")
+        st.write("GeoJSON 載入成功！")
     except FileNotFoundError:
         st.error("找不到 taiwan_counties.geojson，請確認已上傳到 repo 根目錄")
         st.stop()
