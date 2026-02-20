@@ -17,11 +17,11 @@ st.set_page_config(
 st.markdown("""
 <style>
     .stApp { background-color: #f8f9fa; }
-    h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 5em; margin: 0; text-shadow: 3px 3px 15px rgba(0,0,0,0.5); }
+    h1 { color: white; font-family: 'Inter', sans-serif; font-size: 5.5em; margin: 0; text-shadow: 3px 3px 15px rgba(0,0,0,0.6); }
     .hero { 
         background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), 
                     url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png') center/cover no-repeat; 
-        min-height: 80vh; 
+        min-height: 90vh; 
         display: flex; 
         flex-direction: column; 
         justify-content: center; 
@@ -30,50 +30,33 @@ st.markdown("""
         text-align: center; 
         padding: 0 20px; 
     }
-    .slogan { font-size: 1.8em; margin: 20px 0; font-weight: 300; opacity: 0.9; }
-    .search-form { max-width: 700px; width: 100%; background: rgba(255,255,255,0.9); padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
-    .search-input > div > div > input { font-size: 1.6em; padding: 20px; border-radius: 15px; border: 2px solid #0A84FF; }
-    .search-button { background: #0A84FF !important; color: white !important; font-size: 1.6em !important; padding: 20px 0 !important; border-radius: 15px !important; margin-top: 20px !important; border: none !important; width: 100%; cursor: pointer; }
-    .vision { max-width: 900px; margin: 40px auto; padding: 30px; background: white; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); text-align: center; }
-    .vision h2 { color: #0A84FF; margin-bottom: 20px; }
-    .vision p { font-size: 1.2em; line-height: 1.7; margin: 15px 0; }
+    .slogan { font-size: 2em; margin: 30px 0; font-weight: 300; opacity: 0.9; }
+    .vision { max-width: 900px; margin: 40px auto; padding: 30px; background: rgba(255,255,255,0.95); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); text-align: center; font-size: 1.3em; line-height: 1.8; color: #333; }
+    .vision h2 { color: #0A84FF; margin-bottom: 25px; font-size: 2.2em; }
+    .login-button { background: #0A84FF; color: white; font-size: 1.6em; padding: 20px 60px; border-radius: 15px; border: none; cursor: pointer; margin-top: 40px; transition: background 0.3s; }
+    .login-button:hover { background: #0066cc; }
 </style>
 """, unsafe_allow_html=True)
 
-# 首頁英雄區（極簡）
-st.markdown("""
-<div class="hero">
-  <h1>NeoFormosa</h1>
-  <p class="slogan">Taiwan’s Path to Global Integrity No.1</p>
-  
-  <div class="search-form">
-    """ + st.text_input(
-        "Find financial data on elections",
-        placeholder="輸入姓名、企業、縣市或關鍵字...",
-        key="main_search",
-        label_visibility="collapsed"
-    )._repr_html_() + """
-    
-    <button class="search-button">開始搜尋</button>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+# 首頁英雄區（登入前極簡版）
+if not st.session_state.get('logged_in', False):
+    st.markdown("""
+    <div class="hero">
+      <h1>NeoFormosa</h1>
+      <p class="slogan">Taiwan’s Path to Global Integrity No.1</p>
+      
+      <div class="vision">
+        <h2>我們的願景</h2>
+        <p>我們相信，台灣能成為全世界清廉印象指數 (CPI) 第一的國家。</p>
+        <p>透過 AI 與公開資料，讓每位公民輕鬆監督政治金流與政策關聯。</p>
+        <p><strong>從美麗的福爾摩沙，到最乾淨的國家，由我們一起創造。</strong></p>
+      </div>
+      
+      <button class="login-button" onclick="window.location.reload();">登入開始使用</button>
+    </div>
+    """, unsafe_allow_html=True)
 
-# 願景宣言（縮小版）
-st.markdown("""
-<div class="vision">
-  <h2>NeoFormosa 願景</h2>
-  <p>我們相信，台灣能成為全世界清廉印象指數 (CPI) 第一的國家。</p>
-  <p>透過 AI 與公開資料的透明力量，讓每位公民輕鬆監督政治金流與政策關聯。</p>
-  <p><strong>從美麗的福爾摩沙，到最乾淨的國家，由我們一起創造。</strong></p>
-</div>
-""", unsafe_allow_html=True)
-
-# 登入功能
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-
-def login():
+    # 登入表單（放在首頁下方）
     st.title("NeoFormosa 登入")
     username = st.text_input("使用者名稱")
     password = st.text_input("密碼", type="password")
@@ -85,12 +68,13 @@ def login():
         else:
             st.error("帳號或密碼錯誤")
 
-if not st.session_state.logged_in:
-    login()
-    st.stop()
+    st.stop()  # 登入前不顯示後面內容
 
-# 登入後才顯示完整內容
-# ==================== 讀取資料 ====================
+# ==================== 登入後內容 ====================
+st.sidebar.title("NeoFormosa")
+st.sidebar.info(f"資料最後更新：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}")
+
+# 讀取資料
 @st.cache_data
 def load_data():
     try:
@@ -102,10 +86,7 @@ def load_data():
 
 df = load_data()
 
-last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-st.sidebar.info(f"資料最後更新：{last_update}")
-
-# ==================== 進階搜尋與篩選 ====================
+# 側邊欄篩選
 st.sidebar.header("進階篩選")
 
 search_name = st.sidebar.text_input("姓名包含")
