@@ -10,55 +10,41 @@ from fpdf import FPDF
 st.set_page_config(
     page_title="NeoFormosa - 台灣政治透明平台",
     page_icon="favicon.ico",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# 極簡專業 CSS
+# Google Fonts + 統一高級風格 CSS
 st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+    * { font-family: 'Inter', sans-serif !important; }
     .stApp { background-color: #f8f9fa; }
-    h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 4em; margin: 0; }
-    .hero { 
-        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), 
-                    url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png') center/cover no-repeat; 
-        min-height: 60vh; 
-        display: flex; 
-        flex-direction: column; 
-        justify-content: center; 
-        align-items: center; 
-        color: white; 
-        text-align: center; 
-        padding: 0 20px; 
-    }
-    .slogan { font-size: 1.8em; margin: 20px 0; font-weight: 300; }
-    .vision { max-width: 900px; margin: 30px auto; padding: 25px; background: white; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); text-align: center; font-size: 1.2em; line-height: 1.7; }
-    .vision h2 { color: #0A84FF; margin-bottom: 20px; }
-    .sidebar-section { margin-bottom: 20px; }
+    [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #e0e0e0; }
+    h1, h2, h3 { color: #0A84FF; }
+    h1 { font-size: 3.8em; font-weight: 700; margin-bottom: 0.3em; }
+    .stButton > button { background-color: #0A84FF; color: white; border-radius: 10px; padding: 12px 24px; font-weight: 500; border: none; transition: all 0.3s; }
+    .stButton > button:hover { background-color: #0066cc; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(10,132,255,0.3); }
+    .stExpander { border: 1px solid #e0e0e0; border-radius: 12px; background: white; }
+    .stDataFrame { border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+    .card { background: white; padding: 25px; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); margin-bottom: 25px; text-align: center; }
+    .card h3 { color: #0A84FF; margin-bottom: 15px; font-size: 1.6em; }
+    .card p { font-size: 1.4em; font-weight: 600; color: #333; margin: 0; }
+    .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; padding: 30px; }
+    .vision { background: linear-gradient(135deg, #f0f8ff, #e6f4ff); padding: 40px; border-radius: 20px; box-shadow: 0 8px 30px rgba(10,132,255,0.1); margin: 40px auto; max-width: 1100px; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
-# 首頁英雄區（登入前簡化）
-if not st.session_state.get('logged_in', False):
-    st.markdown("""
-    <div class="hero">
-      <h1>NeoFormosa</h1>
-      <p class="slogan">Taiwan’s Path to Global Integrity No.1</p>
-    </div>
-    """, unsafe_allow_html=True)
+# 登入功能
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
 
-    st.markdown("""
-    <div class="vision">
-      <h2>我們的願景</h2>
-      <p>我們相信，台灣能成為全世界清廉印象指數 (CPI) 第一的國家。</p>
-      <p>透過 AI 與公開資料，讓每位公民輕鬆監督政治金流與政策關聯。</p>
-      <p><strong>從美麗的福爾摩沙，到最乾淨的國家，由我們一起創造。</strong></p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.title("登入開始使用")
+def login():
+    st.markdown("<div class='hero'><h1>NeoFormosa</h1><p class='slogan'>Taiwan’s Path to Global Integrity No.1</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='vision'><h2>登入以查看政治資金透明資料</h2></div>", unsafe_allow_html=True)
     username = st.text_input("使用者名稱")
     password = st.text_input("密碼", type="password")
-    if st.button("登入"):
+    if st.button("登入", use_container_width=True):
         if username == "admin" and password == "poli2026":
             st.session_state.logged_in = True
             st.success("登入成功！")
@@ -66,52 +52,56 @@ if not st.session_state.get('logged_in', False):
         else:
             st.error("帳號或密碼錯誤")
 
+if not st.session_state.logged_in:
+    login()
     st.stop()
 
-# ==================== 登入後內容 ====================
-st.sidebar.title("NeoFormosa")
-st.sidebar.info(f"資料最後更新：{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}")
+# ==================== 讀取資料 ====================
+with st.spinner("載入資料中..."):
+    @st.cache_data
+    def load_data():
+        try:
+            df = pd.read_csv("polittrack_data.csv", encoding='utf-8-sig')
+            return df
+        except FileNotFoundError:
+            st.error("找不到 polittrack_data.csv")
+            return pd.DataFrame()
 
-# 讀取資料
-@st.cache_data
-def load_data():
-    try:
-        df = pd.read_csv("polittrack_data.csv", encoding='utf-8-sig')
-        return df
-    except FileNotFoundError:
-        st.error("找不到 polittrack_data.csv")
-        return pd.DataFrame()
+    df = load_data()
 
-df = load_data()
+last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+st.sidebar.success(f"資料最後更新：{last_update}")
 
-# 側邊欄篩選 - 精簡版
+# ==================== 側邊欄篩選（精簡） ====================
 st.sidebar.header("快速篩選")
 
-search_name = st.sidebar.text_input("姓名包含", key="sidebar_name")
-search_party = st.sidebar.selectbox("黨籍", ["全部"] + list(df['party'].unique()) if 'party' in df else ["全部"], key="sidebar_party")
+search_name = st.sidebar.text_input("姓名或關鍵字")
+search_party = st.sidebar.selectbox("黨籍", ["全部"] + list(df['party'].unique()) if 'party' in df else ["全部"])
 
-with st.sidebar.expander("進階篩選", expanded=False):
-    search_donor_type = st.selectbox("捐款來源類型", ["全部", "企業", "個人", "團體"], key="sidebar_donor_type")
-    search_year = st.slider("捐款年份範圍", int(df['donation_year'].min()) if 'donation_year' in df else 2020, 
-                            int(df['donation_year'].max()) if 'donation_year' in df else 2025, (2020, 2025), key="sidebar_year")
-    search_donation_min = st.number_input("捐款總額最低", value=0, key="sidebar_min")
-    search_donation_max = st.number_input("捐款總額最高", value=1000000000, key="sidebar_max")
-    search_area = st.selectbox("選區", ["全部"] + list(df['district'].unique()) if 'district' in df else ["全部"], key="sidebar_area")
-    sort_by = st.selectbox("排序方式", ["無排序", "捐款金額降序", "財產增長率降序", "提案數降序"], key="sidebar_sort")
+with st.sidebar.expander("進階篩選"):
+    search_donor_type = st.selectbox("捐款來源", ["全部", "企業", "個人", "團體"])
+    search_year = st.slider("捐款年份", 2020, 2025, (2020, 2025))
+    search_donation_range = st.slider("捐款金額範圍 (元)", 0, 100000000, (0, 100000000))
+    search_area = st.selectbox("選區", ["全部"] + list(df['district'].unique()) if 'district' in df else ["全部"])
+    sort_by = st.selectbox("排序", ["無排序", "捐款金額降序", "財產增長率降序"])
 
-if st.sidebar.button("重置所有篩選"):
+if st.sidebar.button("重置篩選"):
     st.rerun()
 
+# 過濾資料
 filtered_df = df.copy()
 if search_name:
-    filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
+    query = search_name.lower()
+    filtered_df = filtered_df[
+        filtered_df['name'].str.lower().str.contains(query, na=False) |
+        filtered_df.get('top_donor', pd.Series()).str.lower().str.contains(query, na=False)
+    ]
 if search_party != "全部":
     filtered_df = filtered_df[filtered_df['party'] == search_party]
 if search_donor_type != "全部":
     filtered_df = filtered_df[filtered_df['donor_type'] == search_donor_type]
-if 'donation_year' in filtered_df:
-    filtered_df = filtered_df[(filtered_df['donation_year'] >= search_year[0]) & (filtered_df['donation_year'] <= search_year[1])]
-filtered_df = filtered_df[(filtered_df['donation_total'] >= search_donation_min) & (filtered_df['donation_total'] <= search_donation_max)]
+filtered_df = filtered_df[(filtered_df['donation_year'] >= search_year[0]) & (filtered_df['donation_year'] <= search_year[1])]
+filtered_df = filtered_df[(filtered_df['donation_total'] >= search_donation_range[0]) & (filtered_df['donation_total'] <= search_donation_range[1])]
 if search_area != "全部":
     filtered_df = filtered_df[filtered_df['district'] == search_area]
 
@@ -120,66 +110,60 @@ if sort_by == "捐款金額降序":
 elif sort_by == "財產增長率降序":
     filtered_df['growth_rate'] = (filtered_df['assets_2025'] - filtered_df['assets_2024']) / filtered_df['assets_2024'] * 100
     filtered_df = filtered_df.sort_values('growth_rate', ascending=False)
-elif sort_by == "提案數降序":
-    filtered_df['proposal_count'] = filtered_df['legislation_record'].str.extract('(\d+)').astype(float)
-    filtered_df = filtered_df.sort_values('proposal_count', ascending=False)
 
-def add_warning(row):
-    if row.get('donation_amount', 0) > 10000000 and '企業' in str(row.get('top_donor', '')) and '法案' in str(row.get('association', '')):
-        return "⚠️ 異常捐款警示：金額高且議題高度相關"
-    return ""
+# ==================== 儀表板首頁 ====================
+st.title("儀表板總覽")
 
-filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
+dashboard_cols = st.columns(4)
+
+with dashboard_cols[0]:
+    st.markdown('<div class="card"><h3>總捐款金額</h3><p>{:,.0f} 元</p></div>'.format(filtered_df['donation_total'].sum()), unsafe_allow_html=True)
+
+with dashboard_cols[1]:
+    st.markdown('<div class="card"><h3>異常警示數</h3><p>{}</p></div>'.format(len(filtered_df[filtered_df['warning'] != ""])), unsafe_allow_html=True)
+
+with dashboard_cols[2]:
+    st.markdown('<div class="card"><h3>最高捐款縣市</h3><p>{}</p></div>'.format(filtered_df.groupby('district')['donation_total'].sum().idxmax()), unsafe_allow_html=True)
+
+with dashboard_cols[3]:
+    st.markdown('<div class="card"><h3>候選人數</h3><p>{}</p></div>'.format(filtered_df['name'].nunique()), unsafe_allow_html=True)
 
 # ==================== 主內容分頁 ====================
-tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
+tab1, tab2, tab3, tab4 = st.tabs(["資料查詢", "大額捐款排行", "選區金流地圖", "完整資料庫"])
 
 with tab1:
-    st.header('查詢結果')
-    st.write(f"找到 {len(filtered_df)} 筆資料")
-    st.dataframe(filtered_df)
+    st.header("查詢結果")
+    st.dataframe(
+        filtered_df.style.applymap(
+            lambda x: 'background-color: #ffcccc' if isinstance(x, (int, float)) and x > 10000000 else '',
+            subset=['donation_total']
+        ),
+        use_container_width=True,
+        column_config={
+            "donation_total": st.column_config.NumberColumn("捐款總額", format="%d 元"),
+            "warning": st.column_config.TextColumn("警示"),
+        },
+        hide_index=True
+    )
 
-    st.subheader('財產趨勢圖')
+    st.subheader("財產趨勢圖")
     fig_trend = px.line(filtered_df, x='name', y=['assets_2024', 'assets_2025'], title='財產變化')
-    st.plotly_chart(fig_trend)
-
-    st.subheader('捐款總額排行')
-    fig_bar = px.bar(filtered_df.sort_values('donation_total', ascending=False), x='name', y='donation_total')
-    st.plotly_chart(fig_bar)
-
-    st.subheader('捐款來源比例')
-    donor_type_counts = filtered_df['donor_type'].value_counts()
-    fig_pie = px.pie(donor_type_counts, values=donor_type_counts.values, names=donor_type_counts.index)
-    st.plotly_chart(fig_pie)
-
-    st.subheader('黨派捐款比較')
-    party_sum = filtered_df.groupby('party')['donation_total'].sum().reset_index()
-    fig_party = px.bar(party_sum, x='party', y='donation_total')
-    st.plotly_chart(fig_party)
-
-    st.subheader('捐款年份變化')
-    year_sum = filtered_df.groupby('donation_year')['donation_total'].sum().reset_index()
-    fig_time = px.line(year_sum, x='donation_year', y='donation_total')
-    st.plotly_chart(fig_time)
+    st.plotly_chart(fig_trend, use_container_width=True)
 
 with tab2:
-    st.header('大額捐款者排行榜')
+    st.header("大額捐款者排行榜")
     top_donors = filtered_df.sort_values('donation_amount', ascending=False).head(15)
     st.dataframe(top_donors[['name', 'top_donor', 'donation_amount']])
     fig_rank = px.bar(top_donors, x='top_donor', y='donation_amount', color='name')
-    st.plotly_chart(fig_rank)
+    st.plotly_chart(fig_rank, use_container_width=True)
 
 with tab3:
-    st.header('選區金流地圖（僅台灣領土）')
-    
-    st.write("地圖資料筆數：", len(map_data))
-
+    st.header("選區金流地圖")
     try:
         with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
             taiwan_geojson = json.load(f)
-        st.write("GeoJSON 載入成功！開始繪製地圖...")
     except FileNotFoundError:
-        st.error("找不到 taiwan_counties.geojson，請確認已上傳到 repo 根目錄")
+        st.error("找不到 taiwan_counties.geojson")
         st.stop()
 
     fig_map = px.choropleth_mapbox(
@@ -189,76 +173,17 @@ with tab3:
         featureidkey='properties.name',
         color='donation_total',
         color_continuous_scale='Blues',
-        range_color=(map_data['donation_total'].min(), map_data['donation_total'].max()),
         hover_name='district',
-        hover_data=['main_party', 'donation_total'],
         zoom=7.8,
         center={"lat": 23.58, "lon": 120.98},
         opacity=0.85,
         mapbox_style="carto-positron"
     )
-
-    fig_map.update_traces(
-        marker_line_width=1.2,
-        marker_line_color='#333333',
-        selector=dict(type='choroplethmapbox')
-    )
-
-    fig_map.add_scattermapbox(
-        lat=map_data['lat'],
-        lon=map_data['lon'],
-        mode='text',
-        text=map_data['district'],
-        textfont=dict(size=10, color='black'),
-        hoverinfo='none'
-    )
-
-    fig_map.update_layout(
-        margin={"r":0,"t":40,"l":0,"b":0},
-        height=700,
-        title="台灣選區捐款熱圖（邊界細膩強化版）"
-    )
-
+    fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=700)
     st.plotly_chart(fig_map, use_container_width=True)
 
 with tab4:
-    st.header('完整資料庫')
+    st.header("完整資料庫")
     st.dataframe(df)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button('下載完整 CSV'):
-            csv = df.to_csv(index=False, encoding='utf-8-sig').encode('utf-8')
-            st.download_button("下載 CSV", csv, "polittrack_data.csv", "text/csv")
-
-    with col2:
-        selected_name = st.selectbox("選擇候選人匯出報告", df['name'].unique())
-        if st.button('匯出 PDF 報告'):
-            selected = df[df['name'] == selected_name].iloc[0]
-
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", 'B', 16)
-            pdf.cell(0, 10, "NeoFormosa 個人報告", ln=1, align='C')
-            pdf.ln(10)
-
-            pdf.set_font("Arial", size=12)
-            pdf.cell(0, 10, f"姓名: {selected['name']}", ln=1)
-            pdf.cell(0, 10, f"黨籍: {selected['party']}", ln=1)
-            pdf.cell(0, 10, f"捐款總額: {selected['donation_total']:,} 元", ln=1)
-            pdf.cell(0, 10, f"財產 (2025): {selected['assets_2025']:,} 元", ln=1)
-            pdf.cell(0, 10, f"立法紀錄: {selected['legislation_record']}", ln=1)
-            pdf.cell(0, 10, f"警示: {selected.get('warning', '無異常')}", ln=1)
-
-            pdf_output = BytesIO()
-            pdf.output(pdf_output)
-            pdf_output.seek(0)
-
-            st.download_button(
-                label="下載標準 PDF 報告",
-                data=pdf_output,
-                file_name=f"report_{selected_name}.pdf",
-                mime="application/pdf"
-            )
-
-st.sidebar.info("資料從 polittrack_data.csv 讀取，用 Excel 更新後重新執行程式即可生效。")
+st.sidebar.info("資料從 polittrack_data.csv 讀取，用 Excel 更新後重新 commit 即可生效。")
