@@ -13,12 +13,20 @@ st.set_page_config(
     layout="wide"
 )
 
-# 科技藍風格 CSS
+# 科技藍風格 CSS + Raw 背景圖網址
 st.markdown("""
 <style>
     .stApp { background-color: #f0f8ff; }
     h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 4em; margin: 0; }
-    .hero { background: linear-gradient(rgba(10, 132, 255, 0.15), rgba(0, 212, 255, 0.1)), url('background.png') center/cover no-repeat; padding: 150px 0; text-align: center; color: white; border-radius: 0 0 30px 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .hero { 
+        background: linear-gradient(rgba(10, 132, 255, 0.15), rgba(0, 212, 255, 0.1)), 
+                    url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png') center/cover no-repeat; 
+        padding: 150px 0; 
+        text-align: center; 
+        color: white; 
+        border-radius: 0 0 30px 30px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+    }
     .search-form { max-width: 800px; margin: 50px auto; background: rgba(255,255,255,0.92); padding: 40px; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
     .search-input > div > div > input { font-size: 1.4em; padding: 18px; border-radius: 12px; border: 2px solid #0A84FF; }
     .search-button { background: #0A84FF !important; color: white !important; font-size: 1.4em !important; padding: 18px 60px !important; border-radius: 12px !important; margin-top: 25px !important; border: none !important; cursor: pointer; width: 100%; }
@@ -27,7 +35,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 英雄區：背景 + 標題 + slogan + 搜尋表單
+# 英雄區：背景 + 標題 + slogan
 st.markdown("""
 <div class="hero">
   <h1>NeoFormosa</h1>
@@ -64,7 +72,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 中立聲明 + 來源
+# 中立聲明 + 來源連結
 st.markdown("""
 **平台中立聲明**  
 本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
