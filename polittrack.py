@@ -72,7 +72,7 @@ with st.spinner("載入資料中..."):
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.success(f"資料最後更新：{last_update}")
 
-# ==================== 側邊欄篩選（精簡） ====================
+# ==================== 側邊欄篩選 ====================
 st.sidebar.header("快速篩選")
 
 search_name = st.sidebar.text_input("姓名或關鍵字")
@@ -111,22 +111,32 @@ elif sort_by == "財產增長率降序":
     filtered_df['growth_rate'] = (filtered_df['assets_2025'] - filtered_df['assets_2024']) / filtered_df['assets_2024'] * 100
     filtered_df = filtered_df.sort_values('growth_rate', ascending=False)
 
+# 確保 warning 欄位存在
+if 'warning' not in filtered_df.columns:
+    filtered_df['warning'] = ""
+
+filtered_df['warning'] = filtered_df.apply(lambda row: "⚠️ 異常捐款警示" if row.get('donation_amount', 0) > 10000000 else "", axis=1)
+
 # ==================== 儀表板首頁 ====================
 st.title("儀表板總覽")
 
 dashboard_cols = st.columns(4)
 
 with dashboard_cols[0]:
-    st.markdown('<div class="card"><h3>總捐款金額</h3><p>{:,.0f} 元</p></div>'.format(filtered_df['donation_total'].sum()), unsafe_allow_html=True)
+    total_donation = filtered_df['donation_total'].sum() if 'donation_total' in filtered_df.columns else 0
+    st.markdown(f'<div class="card"><h3>總捐款金額</h3><p>{total_donation:,.0f} 元</p></div>', unsafe_allow_html=True)
 
 with dashboard_cols[1]:
-    st.markdown('<div class="card"><h3>異常警示數</h3><p>{}</p></div>'.format(len(filtered_df[filtered_df['warning'] != ""])), unsafe_allow_html=True)
+    warning_count = len(filtered_df[filtered_df['warning'] != ""]) if 'warning' in filtered_df.columns else 0
+    st.markdown(f'<div class="card"><h3>異常警示數</h3><p>{warning_count}</p></div>', unsafe_allow_html=True)
 
 with dashboard_cols[2]:
-    st.markdown('<div class="card"><h3>最高捐款縣市</h3><p>{}</p></div>'.format(filtered_df.groupby('district')['donation_total'].sum().idxmax()), unsafe_allow_html=True)
+    top_district = filtered_df.groupby('district')['donation_total'].sum().idxmax() if 'district' in filtered_df.columns and not filtered_df.empty else "無資料"
+    st.markdown(f'<div class="card"><h3>最高捐款縣市</h3><p>{top_district}</p></div>', unsafe_allow_html=True)
 
 with dashboard_cols[3]:
-    st.markdown('<div class="card"><h3>候選人數</h3><p>{}</p></div>'.format(filtered_df['name'].nunique()), unsafe_allow_html=True)
+    candidate_count = filtered_df['name'].nunique() if 'name' in filtered_df.columns else 0
+    st.markdown(f'<div class="card"><h3>候選人數</h3><p>{candidate_count}</p></div>', unsafe_allow_html=True)
 
 # ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["資料查詢", "大額捐款排行", "選區金流地圖", "完整資料庫"])
@@ -136,7 +146,7 @@ with tab1:
     st.dataframe(
         filtered_df.style.applymap(
             lambda x: 'background-color: #ffcccc' if isinstance(x, (int, float)) and x > 10000000 else '',
-            subset=['donation_total']
+            subset=['donation_total'] if 'donation_total' in filtered_df.columns else []
         ),
         use_container_width=True,
         column_config={
@@ -152,13 +162,22 @@ with tab1:
 
 with tab2:
     st.header("大額捐款者排行榜")
-    top_donors = filtered_df.sort_values('donation_amount', ascending=False).head(15)
+    top_donors = filtered_df.sort_values('donation_amount', ascending=False).head(15) if 'donation_amount' in filtered_df.columns else pd.DataFrame()
     st.dataframe(top_donors[['name', 'top_donor', 'donation_amount']])
     fig_rank = px.bar(top_donors, x='top_donor', y='donation_amount', color='name')
     st.plotly_chart(fig_rank, use_container_width=True)
 
 with tab3:
     st.header("選區金流地圖")
+    # 地圖資料定義
+    map_data = pd.DataFrame({
+        'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
+        'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
+        'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
+        'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
+        'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
+    })
+
     try:
         with open("taiwan_counties.geojson", "r", encoding="utf-8") as f:
             taiwan_geojson = json.load(f)
