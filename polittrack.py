@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 科技藍風格 CSS + Raw GitHub 背景圖網址
+# 科技藍風格 CSS + Raw 背景圖
 st.markdown("""
 <style>
     .stApp { background-color: #f0f8ff; }
@@ -33,10 +33,12 @@ st.markdown("""
     .search-button { background: #0A84FF !important; color: white !important; font-size: 1.5em !important; padding: 20px 80px !important; border-radius: 15px !important; margin-top: 30px !important; border: none !important; cursor: pointer; width: 100%; transition: background 0.3s; }
     .search-button:hover { background: #0066cc !important; }
     .vision { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 5px 30px rgba(0,0,0,0.1); margin: 50px auto; max-width: 1100px; text-align: center; }
+    .media-logos { text-align: center; margin: 30px 0; }
+    .media-logos img { height: 50px; margin: 0 30px; opacity: 0.8; }
 </style>
 """, unsafe_allow_html=True)
 
-# 英雄區：背景 + 標題 + slogan
+# 英雄區
 st.markdown("""
 <div class="hero">
   <h1>NeoFormosa</h1>
@@ -44,20 +46,28 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 搜尋表單
+# 搜尋表單 + 過濾邏輯
+if 'search_query' not in st.session_state:
+    st.session_state.search_query = ""
+
 with st.form(key="main_search_form", clear_on_submit=False):
     st.markdown('<div class="search-form">', unsafe_allow_html=True)
     
     col_search, col_button = st.columns([4, 1])
     with col_search:
-        search_query = st.text_input(
+        search_input = st.text_input(
             "Find financial data on elections",
+            value=st.session_state.search_query,
             placeholder="輸入姓名、企業、縣市或關鍵字...",
-            key="main_search",
+            key="main_search_temp",
             label_visibility="collapsed"
         )
     
     submitted = st.form_submit_button("開始搜尋", use_container_width=True, type="primary")
+    
+    if submitted:
+        st.session_state.search_query = search_input
+        st.rerun()  # 重新執行以套用過濾
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -70,6 +80,13 @@ st.markdown("""
     透過 AI 與公開資料的透明力量，讓每一位公民都能輕鬆監督政治金流、財產變動與政策關聯。<br><br>
     <strong>從美麗的福爾摩沙，到最乾淨的國家——這一天，由我們一起創造。</strong>
   </p>
+</div>
+""", unsafe_allow_html=True)
+
+# 媒體 logo 區塊（假設已上傳 media_logos.png）
+st.markdown("""
+<div class="media-logos">
+  <img src="https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/media_logos.png" alt="媒體合作">
 </div>
 """, unsafe_allow_html=True)
 
@@ -141,6 +158,16 @@ if st.sidebar.button("重置篩選"):
     st.rerun()
 
 filtered_df = df.copy()
+
+# 套用首頁搜尋關鍵字（如果有）
+if st.session_state.get('search_query'):
+    query = st.session_state.search_query.lower()
+    filtered_df = filtered_df[
+        filtered_df['name'].str.lower().str.contains(query, na=False) |
+        filtered_df['top_donor'].str.lower().str.contains(query, na=False) |
+        filtered_df['district'].str.lower().str.contains(query, na=False)
+    ]
+
 if search_name:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
 if search_party != "全部":
