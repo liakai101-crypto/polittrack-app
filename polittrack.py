@@ -35,10 +35,13 @@ st.markdown("""
     .vision h2 { color: #0A84FF; margin-bottom: 25px; font-size: 2.2em; }
     .login-button { background: #0A84FF; color: white; font-size: 1.6em; padding: 20px 60px; border-radius: 15px; border: none; cursor: pointer; margin-top: 40px; transition: background 0.3s; }
     .login-button:hover { background: #0066cc; }
+    .media-logos { text-align: center; margin: 40px 0; }
+    .media-logos img { height: 60px; margin: 0 40px; opacity: 0.85; transition: opacity 0.3s; }
+    .media-logos img:hover { opacity: 1; }
 </style>
 """, unsafe_allow_html=True)
 
-# 首頁英雄區（登入前極簡版）
+# 首頁英雄區（登入前）
 if not st.session_state.get('logged_in', False):
     st.markdown("""
     <div class="hero">
@@ -56,7 +59,7 @@ if not st.session_state.get('logged_in', False):
     </div>
     """, unsafe_allow_html=True)
 
-    # 登入表單（放在首頁下方）
+    # 登入表單
     st.title("NeoFormosa 登入")
     username = st.text_input("使用者名稱")
     password = st.text_input("密碼", type="password")
@@ -68,7 +71,7 @@ if not st.session_state.get('logged_in', False):
         else:
             st.error("帳號或密碼錯誤")
 
-    st.stop()  # 登入前不顯示後面內容
+    st.stop()
 
 # ==================== 登入後內容 ====================
 st.sidebar.title("NeoFormosa")
@@ -131,6 +134,15 @@ def add_warning(row):
     return ""
 
 filtered_df['warning'] = filtered_df.apply(add_warning, axis=1)
+
+# ==================== 地圖資料定義（確保 tab3 不會 NameError） ====================
+map_data = pd.DataFrame({
+    'district': ['臺北市', '新北市', '桃園市', '臺中市', '臺南市', '高雄市', '基隆市', '新竹市', '嘉義市', '宜蘭縣', '新竹縣', '苗栗縣', '彰化縣', '南投縣', '雲林縣', '嘉義縣', '屏東縣', '臺東縣', '花蓮縣', '澎湖縣', '金門縣', '連江縣'],
+    'donation_total': [850000000, 650000000, 450000000, 550000000, 380000000, 480000000, 120000000, 180000000, 150000000, 200000000, 220000000, 190000000, 280000000, 160000000, 140000000, 130000000, 170000000, 110000000, 130000000, 80000000, 90000000, 50000000],
+    'lat': [25.0330, 25.0120, 24.9934, 24.1477, 22.9999, 22.6273, 25.1337, 24.8138, 23.4807, 24.7503, 24.8270, 24.5643, 24.0510, 23.9601, 23.7089, 23.4811, 22.5519, 22.7554, 23.9743, 23.5655, 24.4360, 26.1500],
+    'lon': [121.5654, 121.4589, 121.2999, 120.6736, 120.2270, 120.3133, 121.7425, 120.9686, 120.4491, 121.7470, 121.0129, 120.8269, 120.4818, 120.9716, 120.4313, 120.4491, 120.4918, 121.1500, 121.6167, 119.5655, 118.3200, 119.9500],
+    'main_party': ['國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '民眾黨', '民進黨', '民進黨', '國民黨', '國民黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '民進黨', '國民黨', '無黨籍', '國民黨', '國民黨']
+})
 
 # ==================== 主內容分頁 ====================
 tab1, tab2, tab3, tab4 = st.tabs(["主查詢與視覺化", "大額捐款排行", "選區金流地圖", "完整資料庫"])
