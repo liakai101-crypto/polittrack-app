@@ -13,48 +13,47 @@ st.set_page_config(
     layout="wide"
 )
 
+# 整體科技藍風格
 st.markdown("""
 <style>
     .stApp { background-color: #f0f8ff; }
-    [data-testid="stHeader"] { background-color: rgba(255,255,255,0); }
-    h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 3em; }
-    .search-box { max-width: 600px; margin: auto; }
-    .media-logos { text-align: center; margin-top: 20px; }
+    h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 3.5em; margin-bottom: 0.2em; }
+    .hero { background: linear-gradient(rgba(10, 132, 255, 0.1), rgba(0, 212, 255, 0.05)), url('background.png') center/cover no-repeat; padding: 120px 0; text-align: center; color: white; border-radius: 0 0 20px 20px; }
+    .search-container { max-width: 700px; margin: 40px auto; background: rgba(255,255,255,0.95); padding: 35px; border-radius: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+    .search-input > div > div > input { font-size: 1.2em; padding: 15px; border-radius: 10px; }
+    .search-button { background: #0A84FF !important; color: white !important; font-size: 1.3em !important; padding: 15px 50px !important; border-radius: 10px !important; margin-top: 20px !important; border: none !important; }
+    .slogan { font-size: 1.4em; margin: 20px 0; color: #e0f7ff; }
+    .vision { background: #ffffff; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin: 30px auto; max-width: 900px; }
 </style>
 """, unsafe_allow_html=True)
 
-# 加背景圖
+# 英雄區（背景 + 標題 + slogan + 搜尋框）
 st.markdown("""
-<div style="background-image: url('background.png'); background-size: cover; padding: 100px 0; text-align: center; color: white;">
-<h1>NeoFormosa</h1>
-<p style="font-size: 1.5em;">Your home for money in politics</p>
-<div class="search-box">
-""" + st.text_input("Find financial data on elections", key="main_search")._html + """
-<button>開始搜尋</button>
-</div>
+<div class="hero">
+  <h1>NeoFormosa</h1>
+  <p class="slogan">Taiwan’s Path to Global Integrity No.1</p>
+  
+  <div class="search-container">
+    <div style="font-size: 1.4em; color: #333; margin-bottom: 20px;">Find financial data on elections</div>
+    """ + st.text_input("", placeholder="輸入姓名、企業、縣市或關鍵字...", key="main_search", label_visibility="collapsed")._repr_html_() + """
+    <button class="search-button">開始搜尋</button>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
-# 加媒體 logo
-st.markdown('<div class="media-logos"><img src="media_logos.png" width="400"></div>', unsafe_allow_html=True)
-
-# ==================== 願景宣言 ====================
+# 願景宣言
 st.markdown("""
-**NeoFormosa 願景**  
-我們相信，台灣能成為全世界清廉印象指數 (CPI) 第一的國家。  
-透過 AI 與公開資料的透明力量，讓每一位公民都能輕鬆監督政治金流、財產變動與政策關聯。  
-從美麗的福爾摩沙，到最乾淨的國家——這一天，由我們一起創造。
-""")
+<div class="vision">
+  <h2 style="color: #0A84FF; text-align: center;">NeoFormosa 願景</h2>
+  <p style="font-size: 1.2em; line-height: 1.8; text-align: center;">
+    我們相信，台灣能成為全世界清廉印象指數 (CPI) 第一的國家。<br>
+    透過 AI 與公開資料的透明力量，讓每一位公民都能輕鬆監督政治金流、財產變動與政策關聯。<br>
+    <strong>從美麗的福爾摩沙，到最乾淨的國家——這一天，由我們一起創造。</strong>
+  </p>
+</div>
+""", unsafe_allow_html=True)
 
-# Slogan
-st.markdown("""
-**Slogan**  
-- NeoFormosa — Taiwan’s Path to Global Integrity No.1  
-- NeoFormosa — AI-Powered Transparency for a Cleaner Taiwan  
-- NeoFormosa — From Beautiful Island to Cleanest Nation
-""")
-
-# 中立聲明
+# 中立聲明 + 來源連結
 st.markdown("""
 **平台中立聲明**  
 本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
@@ -74,6 +73,7 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 def login():
+    st.title("NeoFormosa 登入")
     username = st.text_input("使用者名稱")
     password = st.text_input("密碼", type="password")
     if st.button("登入"):
