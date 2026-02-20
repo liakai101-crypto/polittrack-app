@@ -13,107 +13,63 @@ st.set_page_config(
     layout="wide"
 )
 
-# 科技藍風格 CSS + 修正願景區塊大小
+# 極簡專業 CSS
 st.markdown("""
 <style>
-    .stApp { background-color: #f0f8ff; }
-    h1 { color: white; font-family: 'Inter', sans-serif; font-size: 4.5em; margin: 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.7); }
+    .stApp { background-color: #f8f9fa; }
+    h1 { color: #0A84FF; font-family: 'Inter', sans-serif; font-size: 5em; margin: 0; text-shadow: 3px 3px 15px rgba(0,0,0,0.5); }
     .hero { 
-        background: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.35)), 
+        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.4)), 
                     url('https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/background.png') center/cover no-repeat; 
-        padding: 180px 0; 
-        text-align: center; 
+        min-height: 80vh; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: center; 
+        align-items: center; 
         color: white; 
-        border-radius: 0 0 30px 30px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+        text-align: center; 
+        padding: 0 20px; 
     }
-    .slogan { font-size: 1.8em; color: #e0f7ff; margin: 25px 0; font-weight: 300; text-shadow: 1px 1px 5px rgba(0,0,0,0.6); }
-    .search-form { max-width: 800px; margin: 60px auto; background: rgba(255,255,255,0.95); padding: 45px; border-radius: 25px; box-shadow: 0 15px 50px rgba(0,0,0,0.25); }
-    .search-input > div > div > input { font-size: 1.5em; padding: 20px; border-radius: 15px; border: 2px solid #0A84FF; }
-    .search-button { background: #0A84FF !important; color: white !important; font-size: 1.5em !important; padding: 20px 80px !important; border-radius: 15px !important; margin-top: 30px !important; border: none !important; cursor: pointer; width: 100%; transition: background 0.3s; }
-    .search-button:hover { background: #0066cc !important; }
-    .vision { 
-        background: white; 
-        padding: 50px; 
-        border-radius: 20px; 
-        box-shadow: 0 10px 40px rgba(0,0,0,0.12); 
-        margin: 60px auto; 
-        max-width: 1200px; 
-        text-align: left; 
-        line-height: 1.8; 
-        font-size: 1.2em; 
-    }
-    .vision h2 { color: #0A84FF; text-align: center; margin-bottom: 30px; font-size: 2.2em; }
-    .vision p { margin-bottom: 1.5em; }
-    .media-logos { text-align: center; margin: 40px 0; }
-    .media-logos img { height: 60px; margin: 0 40px; opacity: 0.85; transition: opacity 0.3s; }
-    .media-logos img:hover { opacity: 1; }
+    .slogan { font-size: 1.8em; margin: 20px 0; font-weight: 300; opacity: 0.9; }
+    .search-form { max-width: 700px; width: 100%; background: rgba(255,255,255,0.9); padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+    .search-input > div > div > input { font-size: 1.6em; padding: 20px; border-radius: 15px; border: 2px solid #0A84FF; }
+    .search-button { background: #0A84FF !important; color: white !important; font-size: 1.6em !important; padding: 20px 0 !important; border-radius: 15px !important; margin-top: 20px !important; border: none !important; width: 100%; cursor: pointer; }
+    .vision { max-width: 900px; margin: 40px auto; padding: 30px; background: white; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1); text-align: center; }
+    .vision h2 { color: #0A84FF; margin-bottom: 20px; }
+    .vision p { font-size: 1.2em; line-height: 1.7; margin: 15px 0; }
 </style>
 """, unsafe_allow_html=True)
 
-# 英雄區
+# 首頁英雄區（極簡）
 st.markdown("""
 <div class="hero">
   <h1>NeoFormosa</h1>
   <p class="slogan">Taiwan’s Path to Global Integrity No.1</p>
+  
+  <div class="search-form">
+    """ + st.text_input(
+        "Find financial data on elections",
+        placeholder="輸入姓名、企業、縣市或關鍵字...",
+        key="main_search",
+        label_visibility="collapsed"
+    )._repr_html_() + """
+    
+    <button class="search-button">開始搜尋</button>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
-# 搜尋表單
-with st.form(key="main_search_form", clear_on_submit=False):
-    st.markdown('<div class="search-form">', unsafe_allow_html=True)
-    
-    col_search, col_button = st.columns([4, 1])
-    with col_search:
-        search_input = st.text_input(
-            "Find financial data on elections",
-            value=st.session_state.get('search_query', ""),
-            placeholder="輸入姓名、企業、縣市或關鍵字...",
-            key="main_search_temp",
-            label_visibility="collapsed"
-        )
-    
-    submitted = st.form_submit_button("開始搜尋", use_container_width=True, type="primary")
-    
-    if submitted:
-        st.session_state.search_query = search_input
-        st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# 願景宣言（修正大小與排版）
+# 願景宣言（縮小版）
 st.markdown("""
 <div class="vision">
   <h2>NeoFormosa 願景</h2>
   <p>我們相信，台灣能成為全世界清廉印象指數 (CPI) 第一的國家。</p>
-  <p>透過 AI 與公開資料的透明力量，讓每一位公民都能輕鬆監督政治金流、財產變動與政策關聯。</p>
-  <p><strong>從美麗的福爾摩沙，到最乾淨的國家——這一天，由我們一起創造。</strong></p>
+  <p>透過 AI 與公開資料的透明力量，讓每位公民輕鬆監督政治金流與政策關聯。</p>
+  <p><strong>從美麗的福爾摩沙，到最乾淨的國家，由我們一起創造。</strong></p>
 </div>
 """, unsafe_allow_html=True)
 
-# 媒體 logo 區塊（已加 hover 效果）
-st.markdown("""
-<div class="media-logos">
-  <img src="https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/media_logos.png" alt="媒體合作">
-</div>
-""", unsafe_allow_html=True)
-
-# 中立聲明 + 來源連結
-st.markdown("""
-**平台中立聲明**  
-本平台僅呈現政府公開資料，不添加任何主觀評論、不做立場傾向、不涉及政治宣傳。  
-所有資料來源自監察院、立法院等官方公開平台，使用者可自行驗證。  
-如有錯誤，請聯絡我們（未來加回報表單）。  
-本平台目標：促進公民資訊透明與參與。
-""")
-
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("[監察院政治獻金公開平台](https://ardata.cy.gov.tw)")
-with col2:
-    st.markdown("[立法院開放資料平台](https://data.ly.gov.tw)")
-
-# ==================== 登入功能 ====================
+# 登入功能
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
@@ -133,7 +89,8 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ==================== 讀取資料與過濾 ====================
+# 登入後才顯示完整內容
+# ==================== 讀取資料 ====================
 @st.cache_data
 def load_data():
     try:
@@ -148,22 +105,9 @@ df = load_data()
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.info(f"資料最後更新：{last_update}")
 
-# 首頁搜尋過濾
-if 'search_query' not in st.session_state:
-    st.session_state.search_query = ""
+# ==================== 進階搜尋與篩選 ====================
+st.sidebar.header("進階篩選")
 
-filtered_df = df.copy()
-
-# 套用首頁搜尋
-if st.session_state.search_query:
-    query = st.session_state.search_query.lower()
-    filtered_df = filtered_df[
-        filtered_df['name'].str.lower().str.contains(query, na=False) |
-        filtered_df.get('top_donor', '').str.lower().str.contains(query, na=False) |
-        filtered_df['district'].str.lower().str.contains(query, na=False)
-    ]
-
-# 側邊欄篩選（繼續套用）
 search_name = st.sidebar.text_input("姓名包含")
 search_party = st.sidebar.selectbox("黨籍", ["全部"] + list(df['party'].unique()) if 'party' in df else ["全部"])
 search_donor_type = st.sidebar.selectbox("捐款來源類型", ["全部", "企業", "個人", "團體"])
@@ -178,6 +122,7 @@ sort_by = st.sidebar.selectbox("排序方式", ["無排序", "捐款金額降序
 if st.sidebar.button("重置篩選"):
     st.rerun()
 
+filtered_df = df.copy()
 if search_name:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
 if search_party != "全部":
