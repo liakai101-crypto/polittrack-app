@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 科技藍風格 CSS + Raw 背景圖
+# 科技藍風格 CSS + 修正願景區塊大小
 st.markdown("""
 <style>
     .stApp { background-color: #f0f8ff; }
@@ -32,9 +32,22 @@ st.markdown("""
     .search-input > div > div > input { font-size: 1.5em; padding: 20px; border-radius: 15px; border: 2px solid #0A84FF; }
     .search-button { background: #0A84FF !important; color: white !important; font-size: 1.5em !important; padding: 20px 80px !important; border-radius: 15px !important; margin-top: 30px !important; border: none !important; cursor: pointer; width: 100%; transition: background 0.3s; }
     .search-button:hover { background: #0066cc !important; }
-    .vision { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 5px 30px rgba(0,0,0,0.1); margin: 50px auto; max-width: 1100px; text-align: center; }
-    .media-logos { text-align: center; margin: 30px 0; }
-    .media-logos img { height: 50px; margin: 0 30px; opacity: 0.8; }
+    .vision { 
+        background: white; 
+        padding: 50px; 
+        border-radius: 20px; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.12); 
+        margin: 60px auto; 
+        max-width: 1200px; 
+        text-align: left; 
+        line-height: 1.8; 
+        font-size: 1.2em; 
+    }
+    .vision h2 { color: #0A84FF; text-align: center; margin-bottom: 30px; font-size: 2.2em; }
+    .vision p { margin-bottom: 1.5em; }
+    .media-logos { text-align: center; margin: 40px 0; }
+    .media-logos img { height: 60px; margin: 0 40px; opacity: 0.85; transition: opacity 0.3s; }
+    .media-logos img:hover { opacity: 1; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -46,10 +59,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 搜尋表單 + 過濾邏輯
-if 'search_query' not in st.session_state:
-    st.session_state.search_query = ""
-
+# 搜尋表單
 with st.form(key="main_search_form", clear_on_submit=False):
     st.markdown('<div class="search-form">', unsafe_allow_html=True)
     
@@ -57,7 +67,7 @@ with st.form(key="main_search_form", clear_on_submit=False):
     with col_search:
         search_input = st.text_input(
             "Find financial data on elections",
-            value=st.session_state.search_query,
+            value=st.session_state.get('search_query', ""),
             placeholder="輸入姓名、企業、縣市或關鍵字...",
             key="main_search_temp",
             label_visibility="collapsed"
@@ -67,23 +77,21 @@ with st.form(key="main_search_form", clear_on_submit=False):
     
     if submitted:
         st.session_state.search_query = search_input
-        st.rerun()  # 重新執行以套用過濾
+        st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# 願景宣言
+# 願景宣言（修正大小與排版）
 st.markdown("""
 <div class="vision">
-  <h2 style="color: #0A84FF; margin-bottom: 20px;">NeoFormosa 願景</h2>
-  <p style="font-size: 1.25em; line-height: 1.8;">
-    我們相信，台灣能成為全世界清廉印象指數 (CPI) 第一的國家。<br>
-    透過 AI 與公開資料的透明力量，讓每一位公民都能輕鬆監督政治金流、財產變動與政策關聯。<br><br>
-    <strong>從美麗的福爾摩沙，到最乾淨的國家——這一天，由我們一起創造。</strong>
-  </p>
+  <h2>NeoFormosa 願景</h2>
+  <p>我們相信，台灣能成為全世界清廉印象指數 (CPI) 第一的國家。</p>
+  <p>透過 AI 與公開資料的透明力量，讓每一位公民都能輕鬆監督政治金流、財產變動與政策關聯。</p>
+  <p><strong>從美麗的福爾摩沙，到最乾淨的國家——這一天，由我們一起創造。</strong></p>
 </div>
 """, unsafe_allow_html=True)
 
-# 媒體 logo 區塊（假設已上傳 media_logos.png）
+# 媒體 logo 區塊（已加 hover 效果）
 st.markdown("""
 <div class="media-logos">
   <img src="https://raw.githubusercontent.com/liakai101-crypto/polittrack-app/main/media_logos.png" alt="媒體合作">
@@ -125,7 +133,7 @@ if not st.session_state.logged_in:
     login()
     st.stop()
 
-# ==================== 讀取資料 ====================
+# ==================== 讀取資料與過濾 ====================
 @st.cache_data
 def load_data():
     try:
@@ -140,9 +148,22 @@ df = load_data()
 last_update = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 st.sidebar.info(f"資料最後更新：{last_update}")
 
-# ==================== 進階搜尋與篩選 ====================
-st.sidebar.header("進階搜尋與篩選")
+# 首頁搜尋過濾
+if 'search_query' not in st.session_state:
+    st.session_state.search_query = ""
 
+filtered_df = df.copy()
+
+# 套用首頁搜尋
+if st.session_state.search_query:
+    query = st.session_state.search_query.lower()
+    filtered_df = filtered_df[
+        filtered_df['name'].str.lower().str.contains(query, na=False) |
+        filtered_df.get('top_donor', '').str.lower().str.contains(query, na=False) |
+        filtered_df['district'].str.lower().str.contains(query, na=False)
+    ]
+
+# 側邊欄篩選（繼續套用）
 search_name = st.sidebar.text_input("姓名包含")
 search_party = st.sidebar.selectbox("黨籍", ["全部"] + list(df['party'].unique()) if 'party' in df else ["全部"])
 search_donor_type = st.sidebar.selectbox("捐款來源類型", ["全部", "企業", "個人", "團體"])
@@ -156,17 +177,6 @@ sort_by = st.sidebar.selectbox("排序方式", ["無排序", "捐款金額降序
 
 if st.sidebar.button("重置篩選"):
     st.rerun()
-
-filtered_df = df.copy()
-
-# 套用首頁搜尋關鍵字（如果有）
-if st.session_state.get('search_query'):
-    query = st.session_state.search_query.lower()
-    filtered_df = filtered_df[
-        filtered_df['name'].str.lower().str.contains(query, na=False) |
-        filtered_df['top_donor'].str.lower().str.contains(query, na=False) |
-        filtered_df['district'].str.lower().str.contains(query, na=False)
-    ]
 
 if search_name:
     filtered_df = filtered_df[filtered_df['name'].str.contains(search_name, na=False)]
